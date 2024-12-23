@@ -176,7 +176,7 @@ impl<'de> Iterator for Lexer<'de> {
                     if !self.rest.contains("\"") {
                         return Some(Err(
                         miette! {labels = vec![LabeledSpan::at(self.byte -c.len_utf8()..self.byte, "this unterminated string")],
-                        "Unterminated string in input"
+                        "[line 1] Error: Unterminated string."
                     }.with_source_code(self.whole.to_string())
                     ));
                     } else {
