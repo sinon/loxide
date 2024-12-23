@@ -87,6 +87,8 @@ fn main() -> ExitCode {
                                     } else {
                                         println!("{:?}", Atom::Equals)
                                     }
+                                } else {
+                                    println!("{:?}", Atom::Equals)
                                 }
                             }
                             _ => {
