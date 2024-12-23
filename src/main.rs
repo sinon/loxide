@@ -53,8 +53,8 @@ fn main() {
                         }
                     }
                 }
-                println!("{:?}", Atom::Eof)
             }
+            println!("{:?}", Atom::Eof)
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
