@@ -16,6 +16,8 @@ enum Atom {
     Star,
     SemiColon,
     Eof,
+    Equals,
+    EqualEquals,
 }
 
 impl fmt::Debug for Atom {
@@ -32,6 +34,8 @@ impl fmt::Debug for Atom {
             Atom::Plus => write!(f, "PLUS + null"),
             Atom::Star => write!(f, "STAR * null"),
             Atom::SemiColon => write!(f, "SEMICOLON ; null"),
+            Atom::Equals => write!(f, "EQUAL = null"),
+            Atom::EqualEquals => write!(f, "EQUAL_EQUAL == null"),
         }
     }
 }
@@ -61,8 +65,9 @@ fn main() -> ExitCode {
             });
             let mut return_code = 0;
             if !file_contents.is_empty() {
-                for ln in file_contents.lines() {
-                    for c in ln.chars() {
+                for (ln_num, ln) in file_contents.lines().enumerate() {
+                    let mut char_iter = ln.chars().peekable();
+                    while let Some(c) = char_iter.next() {
                         match c {
                             '(' => println!("{:?}", Atom::LeftParen),
                             ')' => println!("{:?}", Atom::RightParen),
@@ -74,8 +79,22 @@ fn main() -> ExitCode {
                             '+' => println!("{:?}", Atom::Plus),
                             '*' => println!("{:?}", Atom::Star),
                             ';' => println!("{:?}", Atom::SemiColon),
+                            '=' => {
+                                if let Some(n) = char_iter.peek() {
+                                    if *n == '=' {
+                                        println!("{:?}", Atom::EqualEquals);
+                                        char_iter.next();
+                                    } else {
+                                        println!("{:?}", Atom::Equals)
+                                    }
+                                }
+                            }
                             _ => {
-                                eprintln!("[line 1] Error: Unexpected character: {}", c);
+                                eprintln!(
+                                    "[line {}] Error: Unexpected character: {}",
+                                    ln_num + 1,
+                                    c
+                                );
                                 return_code = 65;
                             }
                         }
