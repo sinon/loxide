@@ -29,8 +29,13 @@ fn main() -> Result<ExitCode> {
             if !input.is_empty() {
                 let lexer = Lexer::new(&input);
                 for token in lexer {
-                    let token = token?;
-                    println!("{token}");
+                    match token {
+                        Ok(t) => println!("{t}"),
+                        Err(e) => {
+                            println!("{e}");
+                            return Ok(ExitCode::from(65));
+                        }
+                    }
                 }
             }
             println!("EOF  null");
