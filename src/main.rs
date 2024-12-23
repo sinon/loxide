@@ -18,6 +18,8 @@ enum Atom {
     Eof,
     Equals,
     EqualEquals,
+    Bang,
+    BangEquals,
 }
 
 impl fmt::Debug for Atom {
@@ -36,6 +38,8 @@ impl fmt::Debug for Atom {
             Atom::SemiColon => write!(f, "SEMICOLON ; null"),
             Atom::Equals => write!(f, "EQUAL = null"),
             Atom::EqualEquals => write!(f, "EQUAL_EQUAL == null"),
+            Atom::Bang => write!(f, "BANG ! null"),
+            Atom::BangEquals => write!(f, "BANG_EQUAL != null"),
         }
     }
 }
@@ -79,16 +83,21 @@ fn main() -> ExitCode {
                             '+' => println!("{:?}", Atom::Plus),
                             '*' => println!("{:?}", Atom::Star),
                             ';' => println!("{:?}", Atom::SemiColon),
-                            '=' => {
+                            '=' | '!' => {
+                                let (current_atom, peek_check_ahead) = match c {
+                                    '=' => (Atom::Equals, Atom::EqualEquals),
+                                    '!' => (Atom::Bang, Atom::BangEquals),
+                                    _ => panic!(),
+                                };
                                 if let Some(n) = char_iter.peek() {
                                     if *n == '=' {
-                                        println!("{:?}", Atom::EqualEquals);
+                                        println!("{:?}", peek_check_ahead);
                                         char_iter.next();
                                     } else {
-                                        println!("{:?}", Atom::Equals)
+                                        println!("{:?}", current_atom)
                                     }
                                 } else {
-                                    println!("{:?}", Atom::Equals)
+                                    println!("{:?}", current_atom)
                                 }
                             }
                             _ => {
