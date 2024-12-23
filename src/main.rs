@@ -32,7 +32,7 @@ fn main() -> Result<ExitCode> {
                     match token {
                         Ok(t) => println!("{t}"),
                         Err(e) => {
-                            println!("{e}");
+                            eprintln!("{e}");
                             return Ok(ExitCode::from(65));
                         }
                     }
