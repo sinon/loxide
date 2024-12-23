@@ -4,6 +4,7 @@ use std::fs;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
+#[derive(PartialEq, Eq)]
 enum Atom {
     RightParen,
     LeftParen,
@@ -24,6 +25,7 @@ enum Atom {
     LessEquals,
     Greater,
     GreaterEquals,
+    Slash,
 }
 
 impl fmt::Debug for Atom {
@@ -48,6 +50,7 @@ impl fmt::Debug for Atom {
             Atom::LessEquals => write!(f, "LESS_EQUAL <= null"),
             Atom::Greater => write!(f, "GREATER > null"),
             Atom::GreaterEquals => write!(f, "GREATER_EQUAL >= null"),
+            Atom::Slash => write!(f, "SLASH / null"),
         }
     }
 }
@@ -91,18 +94,22 @@ fn main() -> ExitCode {
                             '+' => println!("{:?}", Atom::Plus),
                             '*' => println!("{:?}", Atom::Star),
                             ';' => println!("{:?}", Atom::SemiColon),
-                            '=' | '!' | '>' | '<' => {
-                                let (current_atom, peek_check_ahead) = match c {
-                                    '=' => (Atom::Equals, Atom::EqualEquals),
-                                    '!' => (Atom::Bang, Atom::BangEquals),
-                                    '>' => (Atom::Greater, Atom::GreaterEquals),
-                                    '<' => (Atom::Less, Atom::LessEquals),
+                            '=' | '!' | '>' | '<' | '/' => {
+                                let (current_atom, peek_check_ahead, two_char_atom) = match c {
+                                    '=' => (Atom::Equals, '=', Atom::EqualEquals),
+                                    '!' => (Atom::Bang, '=', Atom::BangEquals),
+                                    '>' => (Atom::Greater, '=', Atom::GreaterEquals),
+                                    '<' => (Atom::Less, '=', Atom::LessEquals),
+                                    '/' => (Atom::Slash, '/', Atom::Slash),
                                     _ => panic!(),
                                 };
                                 if let Some(n) = char_iter.peek() {
-                                    if *n == '=' {
-                                        println!("{:?}", peek_check_ahead);
+                                    if *n == peek_check_ahead && two_char_atom != Atom::Slash {
+                                        println!("{:?}", two_char_atom);
                                         char_iter.next();
+                                    } else if *n == peek_check_ahead && two_char_atom == Atom::Slash
+                                    {
+                                        break;
                                     } else {
                                         println!("{:?}", current_atom)
                                     }
