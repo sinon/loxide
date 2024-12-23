@@ -6,6 +6,8 @@ use std::io::{self, Write};
 enum Atom {
     RightParen,
     LeftParen,
+    RightBrace,
+    LeftBrace,
     Eof,
 }
 
@@ -15,6 +17,8 @@ impl fmt::Debug for Atom {
             Atom::RightParen => write!(f, "RIGHT_PAREN ) null"),
             Atom::LeftParen => write!(f, "LEFT_PAREN ( null"),
             Atom::Eof => write!(f, "EOF  null"),
+            Atom::RightBrace => write!(f, "RIGHT_BRACE }} null"),
+            Atom::LeftBrace => write!(f, "LEFT_BRACE {{ null"),
         }
     }
 }
@@ -49,6 +53,8 @@ fn main() {
                         match c {
                             '(' => println!("{:?}", Atom::LeftParen),
                             ')' => println!("{:?}", Atom::RightParen),
+                            '{' => println!("{:?}", Atom::LeftBrace),
+                            '}' => println!("{:?}", Atom::RightBrace),
                             _ => {}
                         }
                     }
