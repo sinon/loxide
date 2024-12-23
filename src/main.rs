@@ -13,6 +13,7 @@ enum Atom {
     Minus,
     Plus,
     Star,
+    SemiColon,
     Eof,
 }
 
@@ -29,6 +30,7 @@ impl fmt::Debug for Atom {
             Atom::Minus => write!(f, "MINUS - null"),
             Atom::Plus => write!(f, "PLUS + null"),
             Atom::Star => write!(f, "STAR * null"),
+            Atom::SemiColon => write!(f, "SEMI_COLON ; null"),
         }
     }
 }
@@ -70,6 +72,7 @@ fn main() {
                             '-' => println!("{:?}", Atom::Minus),
                             '+' => println!("{:?}", Atom::Plus),
                             '*' => println!("{:?}", Atom::Star),
+                            ';' => println!("{:?}", Atom::SemiColon),
                             _ => {}
                         }
                     }
