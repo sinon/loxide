@@ -30,7 +30,7 @@ impl fmt::Debug for Atom {
             Atom::Minus => write!(f, "MINUS - null"),
             Atom::Plus => write!(f, "PLUS + null"),
             Atom::Star => write!(f, "STAR * null"),
-            Atom::SemiColon => write!(f, "SEMI_COLON ; null"),
+            Atom::SemiColon => write!(f, "SEMICOLON ; null"),
         }
     }
 }
