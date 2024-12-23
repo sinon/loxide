@@ -84,6 +84,9 @@ fn main() -> ExitCode {
                     let mut char_iter = ln.chars().peekable();
                     while let Some(c) = char_iter.next() {
                         match c {
+                            ' ' | '\t' => {
+                                continue;
+                            }
                             '(' => println!("{:?}", Atom::LeftParen),
                             ')' => println!("{:?}", Atom::RightParen),
                             '{' => println!("{:?}", Atom::LeftBrace),
