@@ -2,6 +2,7 @@ use core::fmt;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use std::process::ExitCode;
 
 enum Atom {
     RightParen,
@@ -42,11 +43,11 @@ RIGHT_PAREN ) null
 EOF  null
  */
 
-fn main() {
+fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
         writeln!(io::stderr(), "Usage: {} tokenize <filename>", args[0]).unwrap();
-        return;
+        return ExitCode::FAILURE;
     }
 
     let command = &args[1];
@@ -58,7 +59,7 @@ fn main() {
                 writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
                 String::new()
             });
-
+            let mut return_code = 0;
             if !file_contents.is_empty() {
                 for ln in file_contents.lines() {
                     for c in ln.chars() {
@@ -73,16 +74,20 @@ fn main() {
                             '+' => println!("{:?}", Atom::Plus),
                             '*' => println!("{:?}", Atom::Star),
                             ';' => println!("{:?}", Atom::SemiColon),
-                            _ => {}
+                            _ => {
+                                eprintln!("[line 1] Error: Unexpected character: {}", c);
+                                return_code = 65;
+                            }
                         }
                     }
                 }
             }
-            println!("{:?}", Atom::Eof)
+            println!("{:?}", Atom::Eof);
+            return ExitCode::from(return_code);
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
-            return;
+            return ExitCode::FAILURE;
         }
     }
 }
