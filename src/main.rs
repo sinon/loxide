@@ -8,6 +8,11 @@ enum Atom {
     LeftParen,
     RightBrace,
     LeftBrace,
+    Comma,
+    Dot,
+    Minus,
+    Plus,
+    Star,
     Eof,
 }
 
@@ -19,6 +24,11 @@ impl fmt::Debug for Atom {
             Atom::Eof => write!(f, "EOF  null"),
             Atom::RightBrace => write!(f, "RIGHT_BRACE }} null"),
             Atom::LeftBrace => write!(f, "LEFT_BRACE {{ null"),
+            Atom::Comma => write!(f, "COMMA , null"),
+            Atom::Dot => write!(f, "DOT . null"),
+            Atom::Minus => write!(f, "MINUS - null"),
+            Atom::Plus => write!(f, "PLUS + null"),
+            Atom::Star => write!(f, "STAR * null"),
         }
     }
 }
@@ -55,6 +65,11 @@ fn main() {
                             ')' => println!("{:?}", Atom::RightParen),
                             '{' => println!("{:?}", Atom::LeftBrace),
                             '}' => println!("{:?}", Atom::RightBrace),
+                            ',' => println!("{:?}", Atom::Comma),
+                            '.' => println!("{:?}", Atom::Dot),
+                            '-' => println!("{:?}", Atom::Minus),
+                            '+' => println!("{:?}", Atom::Plus),
+                            '*' => println!("{:?}", Atom::Star),
                             _ => {}
                         }
                     }
