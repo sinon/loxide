@@ -20,6 +20,10 @@ enum Atom {
     EqualEquals,
     Bang,
     BangEquals,
+    Less,
+    LessEquals,
+    Greater,
+    GreaterEquals,
 }
 
 impl fmt::Debug for Atom {
@@ -40,6 +44,10 @@ impl fmt::Debug for Atom {
             Atom::EqualEquals => write!(f, "EQUAL_EQUAL == null"),
             Atom::Bang => write!(f, "BANG ! null"),
             Atom::BangEquals => write!(f, "BANG_EQUAL != null"),
+            Atom::Less => write!(f, "LESS < null"),
+            Atom::LessEquals => write!(f, "LESS_EQUAL <= null"),
+            Atom::Greater => write!(f, "GREATER > null"),
+            Atom::GreaterEquals => write!(f, "GREATER_EQUAL >= null"),
         }
     }
 }
@@ -83,10 +91,12 @@ fn main() -> ExitCode {
                             '+' => println!("{:?}", Atom::Plus),
                             '*' => println!("{:?}", Atom::Star),
                             ';' => println!("{:?}", Atom::SemiColon),
-                            '=' | '!' => {
+                            '=' | '!' | '>' | '<' => {
                                 let (current_atom, peek_check_ahead) = match c {
                                     '=' => (Atom::Equals, Atom::EqualEquals),
                                     '!' => (Atom::Bang, Atom::BangEquals),
+                                    '>' => (Atom::Greater, Atom::GreaterEquals),
+                                    '<' => (Atom::Less, Atom::LessEquals),
                                     _ => panic!(),
                                 };
                                 if let Some(n) = char_iter.peek() {
