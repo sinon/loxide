@@ -20,7 +20,7 @@ enum Commands {
 
 fn main() -> Result<ExitCode> {
     let args = Args::parse();
-
+    let mut exit_code = 0;
     match args.commands {
         Commands::Tokenize { filename } => {
             let input = fs::read_to_string(filename)
@@ -33,13 +33,14 @@ fn main() -> Result<ExitCode> {
                         Ok(t) => println!("{t}"),
                         Err(e) => {
                             eprintln!("{e}");
-                            return Ok(ExitCode::from(65));
+                            exit_code = 65;
+                            break;
                         }
                     }
                 }
             }
             println!("EOF  null");
-            return Ok(ExitCode::from(0));
+            return Ok(ExitCode::from(exit_code));
         }
     }
 }
