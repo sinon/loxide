@@ -1,6 +1,30 @@
+use core::fmt;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+
+enum Atom {
+    RightParen,
+    LeftParen,
+    Eof,
+}
+
+impl fmt::Debug for Atom {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Atom::RightParen => write!(f, "RIGHT_PAREN ) null"),
+            Atom::LeftParen => write!(f, "LEFT_PAREN ( null"),
+            Atom::Eof => write!(f, "EOF  null"),
+        }
+    }
+}
+
+/*
+LEFT_PAREN ( null
+LEFT_PAREN ( null
+RIGHT_PAREN ) null
+EOF  null
+ */
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -14,19 +38,22 @@ fn main() {
 
     match command.as_str() {
         "tokenize" => {
-            // You can use print statements as follows for debugging, they'll be visible when running tests.
-            // writeln!(io::stderr(), "Logs from your program will appear here!").unwrap();
-
             let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
                 writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
                 String::new()
             });
 
-            // Uncomment this block to pass the first stage
             if !file_contents.is_empty() {
-                panic!("Scanner not implemented");
-            } else {
-                println!("EOF  null"); // Placeholder, remove this line when implementing the scanner
+                for ln in file_contents.lines() {
+                    for c in ln.chars() {
+                        match c {
+                            '(' => println!("{:?}", Atom::LeftParen),
+                            ')' => println!("{:?}", Atom::RightParen),
+                            _ => {}
+                        }
+                    }
+                }
+                println!("{:?}", Atom::Eof)
             }
         }
         _ => {
