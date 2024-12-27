@@ -255,7 +255,7 @@ impl<'de> Iterator for Lexer<'de> {
 
                     match next_char {
                         Some((_, cn)) => {
-                            if cn.is_alphanumeric() || c == '_' {
+                            if cn.is_alphanumeric() || cn == '_' {
                                 c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
                                 self.rest = chars.as_str();
                                 self.byte += cn.len_utf8();
