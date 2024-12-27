@@ -34,7 +34,7 @@ fn main() -> Result<ExitCode> {
                         Err(e) => {
                             eprintln!("{e}");
                             exit_code = 65;
-                            break;
+                            continue;
                         }
                     }
                 }
