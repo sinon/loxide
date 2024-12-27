@@ -276,7 +276,7 @@ impl<'de> Iterator for Lexer<'de> {
 
                     match next_char {
                         Some((_, cn)) => {
-                            if cn == ' ' {
+                            if cn == ' ' || cn == '\n' {
                                 if let Some(x) = self.match_reserved_word(c_str) {
                                     return Some(Ok(Token {
                                         token_type: x,
