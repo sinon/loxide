@@ -1,4 +1,4 @@
-use codecrafters_interpreter::lexer::Lexer;
+use loxide::lexer::Lexer;
 
 #[test]
 fn test_identifiers() {

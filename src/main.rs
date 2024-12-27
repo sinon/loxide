@@ -1,5 +1,5 @@
 use clap::Subcommand;
-use codecrafters_interpreter::lexer::Lexer;
+use loxide::lexer::Lexer;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use std::fs;
 use std::path::PathBuf;
@@ -26,7 +26,7 @@ fn main() -> Result<ExitCode> {
         Commands::Tokenize { filename } => {
             let input = fs::read_to_string(filename)
                 .into_diagnostic()
-                .wrap_err_with(|| format!("reading file"))?;
+                .wrap_err_with(|| "reading file".to_string())?;
             if !input.is_empty() {
                 let lexer = Lexer::new(&input);
                 for token in lexer {
@@ -41,14 +41,13 @@ fn main() -> Result<ExitCode> {
                 }
             }
             println!("EOF  null");
-            return Ok(ExitCode::from(exit_code));
+            Ok(ExitCode::from(exit_code))
         }
         Commands::Parse { filename } => {
-            let input = fs::read_to_string(filename)
+            let _input = fs::read_to_string(filename)
                 .into_diagnostic()
-                .wrap_err_with(|| format!("reading file"))?;
-            if !input.is_empty() {}
-            return Ok(ExitCode::from(exit_code));
+                .wrap_err_with(|| "reading file".to_string())?;
+            Ok(ExitCode::from(exit_code))
         }
     }
 }

@@ -1,3 +1,7 @@
+//! Lexer
+//!
+//! Responsible for transforming a given input str into a Iterator of Result<Token>
+
 use std::fmt;
 
 use miette::{miette, Error, LabeledSpan, Result};
@@ -58,7 +62,7 @@ pub enum TokenType {
     // Eof,
 }
 
-impl<'de> fmt::Display for Token<'de> {
+impl fmt::Display for Token<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let i = self.origin;
         match self.token_type {

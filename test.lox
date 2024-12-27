@@ -1,1 +1,6 @@
-for AND ELSE IF RETURN NIL OR else print PRINT WHILE FALSE nil super false VAR CLASS FUN THIS and TRUE if return this while var fun or true class SUPER FOR
+var greeting = "Hello"
+if (greeting == "Hello") {
+    return true
+} else {
+    return false
+}
