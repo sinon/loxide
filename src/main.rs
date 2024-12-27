@@ -1,5 +1,5 @@
 use clap::Subcommand;
-use codecrafters_interpreter::Lexer;
+use codecrafters_interpreter::lexer::Lexer;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use std::fs;
 use std::path::PathBuf;
@@ -16,6 +16,7 @@ struct Args {
 #[derive(Subcommand, Debug)]
 enum Commands {
     Tokenize { filename: PathBuf },
+    Parse { filename: PathBuf },
 }
 
 fn main() -> Result<ExitCode> {
@@ -40,6 +41,13 @@ fn main() -> Result<ExitCode> {
                 }
             }
             println!("EOF  null");
+            return Ok(ExitCode::from(exit_code));
+        }
+        Commands::Parse { filename } => {
+            let input = fs::read_to_string(filename)
+                .into_diagnostic()
+                .wrap_err_with(|| format!("reading file"))?;
+            if !input.is_empty() {}
             return Ok(ExitCode::from(exit_code));
         }
     }
