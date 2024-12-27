@@ -81,22 +81,22 @@ impl<'de> fmt::Display for Token<'de> {
             TokenType::String => write!(f, "STRING \"{i}\" {i}"),
             TokenType::Identifier => write!(f, "IDENTIFIER {i} null"),
             TokenType::Number(n) => write!(f, "NUMBER {i} {n:?}"),
-            TokenType::And => todo!(),
-            TokenType::Class => todo!(),
-            TokenType::Else => todo!(),
-            TokenType::False => todo!(),
-            TokenType::Fun => todo!(),
-            TokenType::For => todo!(),
-            TokenType::If => todo!(),
-            TokenType::Nil => todo!(),
-            TokenType::Or => todo!(),
-            TokenType::Print => todo!(),
-            TokenType::Return => todo!(),
-            TokenType::Super => todo!(),
-            TokenType::This => todo!(),
-            TokenType::True => todo!(),
-            TokenType::Var => todo!(),
-            TokenType::While => todo!(),
+            TokenType::And => write!(f, "AND {i} null"),
+            TokenType::Class => write!(f, "CLASS {i} null"),
+            TokenType::Else => write!(f, "ELSE {i} null"),
+            TokenType::False => write!(f, "FALSE {i} null"),
+            TokenType::Fun => write!(f, "FUN {i} null"),
+            TokenType::For => write!(f, "FOR {i} null"),
+            TokenType::If => write!(f, "IF {i} null"),
+            TokenType::Nil => write!(f, "NIL {i} null"),
+            TokenType::Or => write!(f, "OR {i} null"),
+            TokenType::Print => write!(f, "PRINT {i} null"),
+            TokenType::Return => write!(f, "RETURN {i} null"),
+            TokenType::Super => write!(f, "SUPER {i} null"),
+            TokenType::This => write!(f, "THIS {i} null"),
+            TokenType::True => write!(f, "TRUE {i} null"),
+            TokenType::Var => write!(f, "VAR {i} null"),
+            TokenType::While => write!(f, "WHILE {i} null"),
         }
     }
 }
@@ -115,6 +115,27 @@ impl<'de> Lexer<'de> {
             whole: input,
             byte: 0,
             line_num: 1,
+        }
+    }
+    fn match_reserved_word(&mut self, c_str: &str) -> Option<TokenType> {
+        match c_str {
+            "and" => Some(TokenType::And),
+            "class" => Some(TokenType::Class),
+            "else" => Some(TokenType::Else),
+            "false" => Some(TokenType::False),
+            "fun" => Some(TokenType::Fun),
+            "for" => Some(TokenType::For),
+            "if" => Some(TokenType::If),
+            "nil" => Some(TokenType::Nil),
+            "or" => Some(TokenType::Or),
+            "print" => Some(TokenType::Print),
+            "return" => Some(TokenType::Return),
+            "super" => Some(TokenType::Super),
+            "this" => Some(TokenType::This),
+            "true" => Some(TokenType::True),
+            "var" => Some(TokenType::Var),
+            "while" => Some(TokenType::While),
+            _ => None,
         }
     }
 }
@@ -255,6 +276,14 @@ impl<'de> Iterator for Lexer<'de> {
 
                     match next_char {
                         Some((_, cn)) => {
+                            if cn == ' ' {
+                                if let Some(x) = self.match_reserved_word(c_str) {
+                                    return Some(Ok(Token {
+                                        token_type: x,
+                                        origin: c_str,
+                                    }));
+                                }
+                            }
                             if cn.is_alphanumeric() || cn == '_' {
                                 c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
                                 self.rest = chars.as_str();
@@ -268,6 +297,13 @@ impl<'de> Iterator for Lexer<'de> {
                             }
                         }
                         None => {
+                            if let Some(x) = self.match_reserved_word(c_str) {
+                                return Some(Ok(Token {
+                                    token_type: x,
+                                    origin: c_str,
+                                }));
+                            }
+
                             return Some(Ok(Token {
                                 token_type: TokenType::Identifier,
                                 origin: c_str,
