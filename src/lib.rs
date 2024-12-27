@@ -146,45 +146,47 @@ impl<'de> Iterator for Lexer<'de> {
             };
 
             let started = match c {
-            '(' => return res(TokenType::LeftParen),
-            ')' => return res(TokenType::RightParen),
-            '{' => return res(TokenType::LeftBrace),
-            '}' => return res(TokenType::RightBrace),
-            ',' => return res(TokenType::Comma),
-            '.' => return res(TokenType::Dot),
-            '-' => return res(TokenType::Minus),
-            '+' => return res(TokenType::Plus),
-            '*' => return res(TokenType::Star),
-            ';' => return res(TokenType::Semicolon),
-            '"' => Started::String,
-            '0'..='9' => Started::Number,
-            'a'..='z' => Started::Identifier,
-            '<' => Started::IfNextEqual(TokenType::LessEqual, TokenType::Less),
-            '>' => Started::IfNextEqual(TokenType::GreaterEqual, TokenType::Greater),
-            '!' => Started::IfNextEqual(TokenType::BangEqual, TokenType::Bang),
-            '=' => Started::IfNextEqual(TokenType::EqualEqual, TokenType::Equal),
-            c if c.is_whitespace() => {
-                if c == '\n' {
-                    self.line_num += 1;
-                }
-                continue;
-            },
-            _ => {
-                    return Some(Err(
-                        miette! {labels = vec![LabeledSpan::at(self.byte-c.len_utf8()..self.byte, "this character")], 
-                        "[line {}] Error: Unexpected character: {c}", self.line_num}
-                        .with_source_code(self.whole.to_string()),
-                    ))
-                }
+                '(' => return res(TokenType::LeftParen),
+                ')' => return res(TokenType::RightParen),
+                '{' => return res(TokenType::LeftBrace),
+                '}' => return res(TokenType::RightBrace),
+                ',' => return res(TokenType::Comma),
+                '.' => return res(TokenType::Dot),
+                '-' => return res(TokenType::Minus),
+                '+' => return res(TokenType::Plus),
+                '*' => return res(TokenType::Star),
+                ';' => return res(TokenType::Semicolon),
+                '"' => Started::String,
+                '0'..='9' => Started::Number,
+                'a'..='z' => Started::Identifier,
+                '<' => Started::IfNextEqual(TokenType::LessEqual, TokenType::Less),
+                '>' => Started::IfNextEqual(TokenType::GreaterEqual, TokenType::Greater),
+                '!' => Started::IfNextEqual(TokenType::BangEqual, TokenType::Bang),
+                '=' => Started::IfNextEqual(TokenType::EqualEqual, TokenType::Equal),
+                c if c.is_whitespace() => {
+                    if c == '\n' {
+                        self.line_num += 1;
+                    }
+                    continue;
+                },
+                _ => {
+                        return Some(Err(
+                            miette! {labels = vec![LabeledSpan::at(self.byte-c.len_utf8()..self.byte, "this character")], 
+                            "[line {}] Error: Unexpected character: {c}", self.line_num}
+                            .with_source_code(self.whole.to_string()),
+                        ))
+                    }
             };
 
             match started {
                 Started::String => {
                     if !self.rest.contains("\"") {
+                        // Scan to end, we cannot continue to scan for tokens when in an unterminated string
+                        self.byte = self.whole.len();
+                        self.rest = &self.rest[self.rest.len()..self.rest.len()];
                         return Some(Err(
                         miette! {labels = vec![LabeledSpan::at(self.byte -c.len_utf8()..self.byte, "this unterminated string")],
-                        "[line 1] Error: Unterminated string."
-                    }.with_source_code(self.whole.to_string())
+                        "[line {}] Error: Unterminated string.", self.line_num}.with_source_code(self.whole.to_string())
                     ));
                     } else {
                         let (s, _) = self.rest.split_once("\"")?;
