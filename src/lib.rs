@@ -136,6 +136,7 @@ impl<'de> Iterator for Lexer<'de> {
                 Number,
                 Identifier,
                 IfNextEqual(TokenType, TokenType),
+                CodeComment,
             }
 
             let res = move |t_type: TokenType| {
@@ -163,6 +164,7 @@ impl<'de> Iterator for Lexer<'de> {
                 '>' => Started::IfNextEqual(TokenType::GreaterEqual, TokenType::Greater),
                 '!' => Started::IfNextEqual(TokenType::BangEqual, TokenType::Bang),
                 '=' => Started::IfNextEqual(TokenType::EqualEqual, TokenType::Equal),
+                '/' => Started::CodeComment,
                 c if c.is_whitespace() => {
                     if c == '\n' {
                         self.line_num += 1;
@@ -179,6 +181,22 @@ impl<'de> Iterator for Lexer<'de> {
             };
 
             match started {
+                Started::CodeComment => {
+                    if self.rest.starts_with("/") {
+                        let eol = self.rest.find("\n");
+                        match eol {
+                            Some(idx) => {
+                                self.byte += idx;
+                                self.rest = &self.rest[idx..];
+                            }
+                            None => {
+                                self.byte = self.whole.len();
+                                self.rest = &self.rest[self.rest.len()..self.rest.len()];
+                                return None;
+                            }
+                        }
+                    }
+                }
                 Started::String => {
                     if !self.rest.contains("\"") {
                         // Scan to end, we cannot continue to scan for tokens when in an unterminated string
