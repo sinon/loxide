@@ -227,7 +227,7 @@ impl<'de> Iterator for Lexer<'de> {
 
                     match next_num {
                         Some((_, cn)) => {
-                            if cn.is_numeric() {
+                            if cn.is_numeric() || cn == '.' {
                                 c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
                                 self.rest = chars.as_str();
                                 self.byte += cn.len_utf8();
