@@ -79,7 +79,7 @@ impl<'de> fmt::Display for Token<'de> {
             TokenType::GreaterEqual => write!(f, "GREATER_EQUAL {i} null"),
             TokenType::Slash => write!(f, "SLASH {i} null"),
             TokenType::String => write!(f, "STRING \"{i}\" {i}"),
-            TokenType::Identifier => todo!(),
+            TokenType::Identifier => write!(f, "IDENTIFIER {i} null"),
             TokenType::Number(n) => write!(f, "NUMBER {i} {n:?}"),
             TokenType::And => todo!(),
             TokenType::Class => todo!(),
@@ -160,6 +160,7 @@ impl<'de> Iterator for Lexer<'de> {
                 '"' => Started::String,
                 '0'..='9' => Started::Number,
                 'a'..='z' => Started::Identifier,
+                '_' => Started::Identifier,
                 '<' => Started::IfNextEqual(TokenType::LessEqual, TokenType::Less),
                 '>' => Started::IfNextEqual(TokenType::GreaterEqual, TokenType::Greater),
                 '!' => Started::IfNextEqual(TokenType::BangEqual, TokenType::Bang),
@@ -249,7 +250,31 @@ impl<'de> Iterator for Lexer<'de> {
                         }
                     }
                 },
-                Started::Identifier => todo!(),
+                Started::Identifier => loop {
+                    let next_char = chars.next();
+
+                    match next_char {
+                        Some((_, cn)) => {
+                            if cn.is_alphanumeric() || c == '_' {
+                                c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
+                                self.rest = chars.as_str();
+                                self.byte += cn.len_utf8();
+                                continue;
+                            } else {
+                                return Some(Ok(Token {
+                                    token_type: TokenType::Identifier,
+                                    origin: c_str,
+                                }));
+                            }
+                        }
+                        None => {
+                            return Some(Ok(Token {
+                                token_type: TokenType::Identifier,
+                                origin: c_str,
+                            }));
+                        }
+                    }
+                },
                 Started::IfNextEqual(then, else_t) => {
                     if self.rest.starts_with("=") {
                         let c_str = &c_onwards[..2];
