@@ -59,7 +59,7 @@ fn test_numbers() {
     let out = Lexer::new(
         "123
 123.456
-.456
+.457
 123.",
     )
     .into_iter()
@@ -72,7 +72,7 @@ fn test_numbers() {
         "NUMBER 123 123.0
 NUMBER 123.456 123.456
 DOT . null
-NUMBER 456 456.0
+NUMBER 457 457.0
 NUMBER 123 123.0
 DOT . null"
     )

@@ -260,14 +260,25 @@ impl<'de> Iterator for Lexer<'de> {
                 }
                 Started::Number => loop {
                     let next_num = chars.next();
-
                     match next_num {
                         Some((_, cn)) => {
-                            if cn.is_numeric() || cn == '.' {
+                            if cn.is_numeric() {
                                 c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
                                 self.rest = chars.as_str();
                                 self.byte += cn.len_utf8();
                                 continue;
+                            } else if cn == '.' {
+                                if let Some((_, c_peek)) = chars.next() {
+                                    // 456. != 456.0 but unstead 456 DOT
+                                    if !c_peek.is_numeric() {
+                                        break;
+                                    } else {
+                                        c_str = &c_onwards
+                                            [at..c_str.len() + cn.len_utf8() + c_peek.len_utf8()];
+                                        self.rest = chars.as_str();
+                                        self.byte += cn.len_utf8() + c_peek.len_utf8();
+                                    }
+                                }
                             } else {
                                 let num: f64 = c_str.parse().unwrap();
                                 return Some(Ok(Token {
