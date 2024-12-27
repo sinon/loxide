@@ -80,7 +80,7 @@ impl<'de> fmt::Display for Token<'de> {
             TokenType::Slash => write!(f, "SLASH {i} null"),
             TokenType::String => write!(f, "STRING \"{i}\" {i}"),
             TokenType::Identifier => todo!(),
-            TokenType::Number(_) => todo!(),
+            TokenType::Number(n) => write!(f, "NUMBER {i} {n:?}"),
             TokenType::And => todo!(),
             TokenType::Class => todo!(),
             TokenType::Else => todo!(),
@@ -126,7 +126,7 @@ impl<'de> Iterator for Lexer<'de> {
         loop {
             let mut chars = self.rest.char_indices();
             let (at, c) = chars.next()?;
-            let c_str = &self.rest[at..at + c.len_utf8()];
+            let mut c_str = &self.rest[at..at + c.len_utf8()];
             let c_onwards = self.rest;
             self.rest = chars.as_str();
             self.byte += c.len_utf8();
@@ -203,7 +203,7 @@ impl<'de> Iterator for Lexer<'de> {
                     }
                 }
                 Started::String => {
-                    if !self.rest.contains("\"") {
+                    if !self.rest.contains('"') {
                         // Scan to end, we cannot continue to scan for tokens when in an unterminated string
                         self.byte = self.whole.len();
                         self.rest = &self.rest[self.rest.len()..self.rest.len()];
@@ -222,7 +222,33 @@ impl<'de> Iterator for Lexer<'de> {
                         }));
                     }
                 }
-                Started::Number => todo!(),
+                Started::Number => loop {
+                    let next_num = chars.next();
+
+                    match next_num {
+                        Some((_, cn)) => {
+                            if cn.is_numeric() {
+                                c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
+                                self.rest = chars.as_str();
+                                self.byte += cn.len_utf8();
+                                continue;
+                            } else {
+                                let num: f64 = c_str.parse().unwrap();
+                                return Some(Ok(Token {
+                                    token_type: TokenType::Number(num),
+                                    origin: c_str,
+                                }));
+                            }
+                        }
+                        None => {
+                            let num: f64 = c_str.parse().unwrap();
+                            return Some(Ok(Token {
+                                token_type: TokenType::Number(num),
+                                origin: c_str,
+                            }));
+                        }
+                    }
+                },
                 Started::Identifier => todo!(),
                 Started::IfNextEqual(then, else_t) => {
                     if self.rest.starts_with("=") {
