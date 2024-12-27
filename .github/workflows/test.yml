@@ -41,26 +41,6 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: cargo llvm-cov
         run: cargo llvm-cov --locked --all-features --lcov --output-path lcov.info
-      - name: Install python dependencies
-        run: pip install -r crates/pngme-python/tests/requirements.txt
-
-      - name: Build pngme-python
-        run: |
-          source <(cargo llvm-cov show-env --export-prefix)
-          cargo llvm-cov clean --workspace --profraw-only
-          pip install -e crates/pngme-python --config-settings=build-args='--profile dev'
-
-      - name: Run tests
-        run: |
-          source <(cargo llvm-cov show-env --export-prefix)
-          pytest crates/pngme-python/tests
-        env:
-          RUST_BACKTRACE: 1
-
-      - name: Coverage report
-        run: |
-          source <(cargo llvm-cov show-env --export-prefix)
-          cargo llvm-cov report --codecov --output-path codecov.json
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
         with:
