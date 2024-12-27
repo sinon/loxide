@@ -180,7 +180,7 @@ impl<'de> Iterator for Lexer<'de> {
                 ';' => return res(TokenType::Semicolon),
                 '"' => Started::String,
                 '0'..='9' => Started::Number,
-                'a'..='z' => Started::Identifier,
+                'a'..='z' | 'A'..='Z' => Started::Identifier,
                 '_' => Started::Identifier,
                 '<' => Started::IfNextEqual(TokenType::LessEqual, TokenType::Less),
                 '>' => Started::IfNextEqual(TokenType::GreaterEqual, TokenType::Greater),
