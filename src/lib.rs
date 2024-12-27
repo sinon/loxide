@@ -195,6 +195,11 @@ impl<'de> Iterator for Lexer<'de> {
                                 return None;
                             }
                         }
+                    } else {
+                        return Some(Ok(Token {
+                            token_type: TokenType::Slash,
+                            origin: c_str,
+                        }));
                     }
                 }
                 Started::String => {
