@@ -105,6 +105,7 @@ pub struct Lexer<'de> {
     whole: &'de str,
     rest: &'de str,
     byte: usize,
+    line_num: usize,
 }
 
 impl<'de> Lexer<'de> {
@@ -113,6 +114,7 @@ impl<'de> Lexer<'de> {
             rest: input,
             whole: input,
             byte: 0,
+            line_num: 1,
         }
     }
 }
@@ -161,11 +163,16 @@ impl<'de> Iterator for Lexer<'de> {
             '>' => Started::IfNextEqual(TokenType::GreaterEqual, TokenType::Greater),
             '!' => Started::IfNextEqual(TokenType::BangEqual, TokenType::Bang),
             '=' => Started::IfNextEqual(TokenType::EqualEqual, TokenType::Equal),
-            c if c.is_whitespace() => continue,
+            c if c.is_whitespace() => {
+                if c == '\n' {
+                    self.line_num += 1;
+                }
+                continue;
+            },
             _ => {
                     return Some(Err(
                         miette! {labels = vec![LabeledSpan::at(self.byte-c.len_utf8()..self.byte, "this character")], 
-                        "Unexpected token '{c}' in input"}
+                        "[line {}] Error: Unexpected character: {c}", self.line_num}
                         .with_source_code(self.whole.to_string()),
                     ))
                 }
