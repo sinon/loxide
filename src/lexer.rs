@@ -271,7 +271,11 @@ impl<'de> Iterator for Lexer<'de> {
                                 if let Some((_, c_peek)) = chars.next() {
                                     // 456. != 456.0 but unstead 456 DOT
                                     if !c_peek.is_numeric() {
-                                        break;
+                                        let num = c_str.parse().unwrap();
+                                        return Some(Ok(Token {
+                                            token_type: TokenType::Number(num),
+                                            origin: c_str,
+                                        }));
                                     } else {
                                         c_str = &c_onwards
                                             [at..c_str.len() + cn.len_utf8() + c_peek.len_utf8()];
