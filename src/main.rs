@@ -51,3 +51,49 @@ fn main() -> Result<ExitCode> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use assert_cmd::Command;
+
+    #[test]
+    fn test_cli_version() {
+        Command::cargo_bin("loxide")
+            .unwrap()
+            .arg("--version")
+            .assert()
+            .success()
+            .code(0)
+            .stdout(format!("loxide 0.1.0\n"))
+            .stderr("");
+
+        Command::cargo_bin("loxide")
+            .unwrap()
+            .arg("-V")
+            .assert()
+            .success()
+            .code(0)
+            .stdout(format!("loxide 0.1.0\n"))
+            .stderr("");
+    }
+    #[test]
+    fn test_tokenize_no_file() {
+        Command::cargo_bin("loxide")
+            .unwrap()
+            .arg("tokenize")
+            .arg("text.lox")
+            .assert()
+            .failure()
+            .code(1);
+    }
+    #[test]
+    fn test_parse_no_file() {
+        Command::cargo_bin("loxide")
+            .unwrap()
+            .arg("parse")
+            .arg("text.lox")
+            .assert()
+            .failure()
+            .code(1);
+    }
+}

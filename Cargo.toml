@@ -12,3 +12,6 @@ repository = "https://github.com/sinon/loxide"
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
 miette = { version = "7.4.0", features = ["fancy"] }
+
+[dev-dependencies]
+assert_cmd = "2.0.14"
