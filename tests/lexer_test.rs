@@ -63,7 +63,8 @@ fn test_numbers() {
 123.456
 .457
 123.
-90",
+90
+523.",
     )
     .into_iter()
     .filter_map(Result::ok)
@@ -78,7 +79,9 @@ DOT . null
 NUMBER 457 457.0
 NUMBER 123 123.0
 DOT . null
-NUMBER 90 90.0"
+NUMBER 90 90.0
+NUMBER 523 523.0
+DOT . null"
     )
 }
 
