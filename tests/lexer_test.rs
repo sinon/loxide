@@ -136,10 +136,10 @@ fn test_whitespace() {
     let out = Lexer::new(
         "space    tabs				newlines
 
+//
 
 
-
-end",
+end//",
     )
     .into_iter()
     .filter_map(Result::ok)
