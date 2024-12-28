@@ -1,4 +1,5 @@
-use loxide::lexer::Lexer;
+use loxide::lexer::{Lexer, Token};
+use miette::Error;
 
 #[test]
 fn test_identifiers() {
@@ -27,7 +28,7 @@ IDENTIFIER abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_ null"
 
 #[test]
 fn test_keywords() {
-    let input = "and class else false for fun if nil or return super this true var while";
+    let input = "and class else false for fun if nil or return super this true var while print";
     let output = Lexer::new(input)
         .into_iter()
         .filter_map(Result::ok)
@@ -50,7 +51,8 @@ SUPER super null
 THIS this null
 TRUE true null
 VAR var null
-WHILE while null"
+WHILE while null
+PRINT print null"
     )
 }
 
@@ -80,7 +82,7 @@ DOT . null"
 
 #[test]
 fn test_punctuators() {
-    let out = Lexer::new("(){};,+-*!===<=>=!=<>/.")
+    let out = Lexer::new("(){};,+-*!===<=>=!=<>/.=!")
         .into_iter()
         .filter_map(Result::ok)
         .map(|x| format!("{}", x))
@@ -105,7 +107,9 @@ BANG_EQUAL != null
 LESS < null
 GREATER > null
 SLASH / null
-DOT . null"
+DOT . null
+EQUAL = null
+BANG ! null"
     );
 }
 
@@ -150,4 +154,18 @@ IDENTIFIER tabs null
 IDENTIFIER newlines null
 IDENTIFIER end null"
     );
+}
+
+#[test]
+fn test_errors() {
+    let out = Lexer::new("#\"//")
+        .into_iter()
+        .collect::<Vec<Result<Token, Error>>>();
+    assert_eq!(out.len(), 2);
+    assert_eq!(out[0].is_err(), true);
+    assert_eq!(out[1].is_err(), true);
+    let e = out[0].as_ref().err().expect("").to_string();
+    assert_eq!(e, "[line 1] Error: Unexpected character: #");
+    let e_msg = out[1].as_ref().err().expect("").to_string();
+    assert_eq!(e_msg, "[line 1] Error: Unterminated string.");
 }

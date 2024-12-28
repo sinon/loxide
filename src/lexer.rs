@@ -1,6 +1,6 @@
 //! Lexer
 //!
-//! Responsible for transforming a given input str into a Iterator of Result<Token>
+//! Responsible for transforming a given input str into a Iterator of `Result<Token>`
 
 use std::fmt;
 
