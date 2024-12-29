@@ -15,3 +15,6 @@ miette = { version = "7.4.0", features = ["fancy"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.14"
+
+# [profile.ci.junit]
+# path = "../../../reports/results.xml"

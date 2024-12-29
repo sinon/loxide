@@ -1,13 +1,14 @@
 use clap::Subcommand;
-use loxide::lexer::Lexer;
+use loxide::lexer::{Lexer, Token};
+use loxide::parser::Parser;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use clap::Parser;
+use clap::Parser as ClapParser;
 
-#[derive(Parser, Debug)]
+#[derive(ClapParser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
     #[command(subcommand)]
@@ -47,6 +48,10 @@ fn main() -> Result<ExitCode> {
             let _input = fs::read_to_string(filename)
                 .into_diagnostic()
                 .wrap_err_with(|| "reading file".to_string())?;
+            let tokens: Vec<Token> = Lexer::new(&_input).filter_map(Result::ok).collect();
+            let mut parser = Parser::new(tokens);
+            let exp = parser.expression().expect("");
+            println!("{}", exp);
             Ok(ExitCode::from(exit_code))
         }
     }

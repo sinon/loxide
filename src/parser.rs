@@ -1,85 +1,218 @@
-// use crate::lexer::Token;
+use std::fmt::Display;
 
-// `Parser`
-// pub struct Parser<'de> {
-//     whole: &'de str,
-//     rest: &'de str,
-//     byte: usize,
-//     line_num: usize,
-// }
+use crate::lexer::{Token, TokenType};
 
-/*
-expression     → literal
-               | unary
-               | binary
-               | grouping ;
+pub struct Parser<'a> {
+    tokens: Vec<Token<'a>>,
+    current: usize,
+}
 
-literal        → NUMBER | STRING | "true" | "false" | "nil" ;
-grouping       → "(" expression ")" ;
-unary          → ( "-" | "!" ) expression ;
-binary         → expression operator expression ;
-operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
-               | "+"  | "-"  | "*" | "/" ;
- */
+#[derive(Debug)]
+pub enum Expr<'de> {
+    Binary {
+        left: Box<Expr<'de>>,
+        operator: Token<'de>,
+        right: Box<Expr<'de>>,
+    },
+    Unary {
+        operator: Token<'de>,
+        right: Box<Expr<'de>>,
+    },
+    Literal(Option<f64>, Option<bool>),
+}
 
-// struct Expr {}
+impl Display for Expr<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expr::Literal(Some(num), _) => {
+                write!(f, "{}", num)
+            }
+            Expr::Literal(None, Some(b)) => match b {
+                true => {
+                    write!(f, "true")
+                }
+                false => {
+                    write!(f, "false")
+                }
+            },
+            Expr::Literal(None, None) => {
+                write!(f, "nil")
+            }
+            _ => todo!(),
+        }
+    }
+}
 
-// struct BinaryExpr {
-//     left: Expr,
-//     operator: Token,
-//     right: Expr,
-// }
+impl<'de> Parser<'de> {
+    pub fn new(tokens: Vec<Token<'de>>) -> Self {
+        Parser { tokens, current: 0 }
+    }
 
-// // The data we will visit
-// mod ast {
-//     pub enum Stmt {
-//         Expr(Expr),
-//         Let(Name, Expr),
-//     }
+    pub fn expression(&mut self) -> Result<Expr<'de>, String> {
+        self.equality()
+    }
 
-//     pub struct Name {
-//         value: String,
-//     }
+    fn equality(&mut self) -> Result<Expr<'de>, String> {
+        let mut expr = self.comparison()?;
 
-//     pub enum Expr {
-//         IntLit(i64),
-//         Add(Box<Expr>, Box<Expr>),
-//         Sub(Box<Expr>, Box<Expr>),
-//     }
-// }
+        while self.match_tokens(&[TokenType::BangEqual, TokenType::EqualEqual]) {
+            let operator = self.previous().clone();
+            let right = self.comparison()?;
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
 
-// // The abstract visitor
-// mod visit {
-//     use ast::*;
+        Ok(expr)
+    }
 
-//     pub trait Visitor<T> {
-//         fn visit_name(&mut self, n: &Name) -> T;
-//         fn visit_stmt(&mut self, s: &Stmt) -> T;
-//         fn visit_expr(&mut self, e: &Expr) -> T;
-//     }
-// }
+    fn comparison(&mut self) -> Result<Expr<'de>, String> {
+        let mut expr = self.term()?;
 
-// use ast::*;
-// use visit::*;
+        while self.match_tokens(&[
+            TokenType::Greater,
+            TokenType::GreaterEqual,
+            TokenType::Less,
+            TokenType::LessEqual,
+        ]) {
+            let operator = self.previous().clone();
+            let right = self.term()?;
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
 
-// // An example concrete implementation - walks the AST interpreting it as code.
-// struct Interpreter;
-// impl Visitor<i64> for Interpreter {
-//     fn visit_name(&mut self, n: &Name) -> i64 {
-//         panic!()
-//     }
-//     fn visit_stmt(&mut self, s: &Stmt) -> i64 {
-//         match *s {
-//             Stmt::Expr(ref e) => self.visit_expr(e),
-//             Stmt::Let(..) => unimplemented!(),
-//         }
-//     }
+        Ok(expr)
+    }
 
-//     fn visit_expr(&mut self, e: &Expr) -> i64 {
-//         match *e {
-//             Expr::IntLit(n) => n,
-//             Expr::Add(ref lhs, ref rhs) => self.visit_expr(lhs) + self.visit_expr(rhs),
-//             Expr::Sub(ref lhs, ref rhs) => self.visit_expr(lhs) - self.visit_expr(rhs),
-//         }
-//     }
-// }
+    fn term(&mut self) -> Result<Expr<'de>, String> {
+        let mut expr = self.factor()?;
+
+        while self.match_tokens(&[TokenType::Minus, TokenType::Plus]) {
+            let operator = self.previous().clone();
+            let right = self.factor()?;
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(expr)
+    }
+
+    fn factor(&mut self) -> Result<Expr<'de>, String> {
+        let mut expr = self.unary()?;
+
+        while self.match_tokens(&[TokenType::Slash, TokenType::Star]) {
+            let operator = self.previous().clone();
+            let right = self.unary()?;
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(expr)
+    }
+
+    fn unary(&mut self) -> Result<Expr<'de>, String> {
+        if self.match_tokens(&[TokenType::Bang, TokenType::Minus]) {
+            let operator = self.previous().clone();
+            let right = self.unary()?;
+            return Ok(Expr::Unary {
+                operator,
+                right: Box::new(right),
+            });
+        }
+
+        self.primary()
+    }
+
+    fn primary(&mut self) -> Result<Expr<'de>, String> {
+        if let Some(token) = self.peek() {
+            match token.token_type {
+                TokenType::Number(n) => {
+                    self.advance();
+                    return Ok(Expr::Literal(Some(n), None));
+                }
+                TokenType::True => {
+                    self.advance();
+                    return Ok(Expr::Literal(None, Some(true)));
+                }
+                TokenType::False => {
+                    self.advance();
+                    return Ok(Expr::Literal(None, Some(false)));
+                }
+                TokenType::Nil => {
+                    self.advance();
+                    return Ok(Expr::Literal(None, None));
+                }
+                TokenType::LeftParen => {
+                    self.advance();
+                    let expr = self.expression()?;
+                    self.consume(TokenType::RightParen, "Expect ')' after expression")?;
+                    return Ok(expr);
+                }
+                _ => {}
+            }
+        }
+
+        Err("Expect expression.".to_string())
+    }
+
+    // Helper methods
+    fn match_tokens(&mut self, types: &[TokenType]) -> bool {
+        for t in types {
+            if self.check(t) {
+                self.advance();
+                return true;
+            }
+        }
+        false
+    }
+
+    fn check(&self, token_type: &TokenType) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        std::mem::discriminant(&self.peek().unwrap().token_type)
+            == std::mem::discriminant(token_type)
+    }
+
+    fn advance(&mut self) -> &Token<'de> {
+        if !self.is_at_end() {
+            self.current += 1;
+        }
+        self.previous()
+    }
+
+    fn peek(&self) -> Option<&Token<'de>> {
+        self.tokens.get(self.current)
+    }
+
+    fn previous(&self) -> &Token<'de> {
+        &self.tokens[0]
+    }
+
+    fn is_at_end(&self) -> bool {
+        if let Some(token) = self.peek() {
+            matches!(token.token_type, TokenType::Eof)
+        } else {
+            true
+        }
+    }
+
+    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<&Token<'de>, String> {
+        if self.check(&token_type) {
+            Ok(self.advance())
+        } else {
+            Err(message.to_string())
+        }
+    }
+}

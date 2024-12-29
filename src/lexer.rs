@@ -7,13 +7,14 @@ use std::fmt;
 use miette::{miette, Error, LabeledSpan, Result};
 
 /// `Token` is formed of a token type (`TokenType`) and a reference to a str in the input string
+#[derive(Clone, Debug)]
 pub struct Token<'de> {
-    token_type: TokenType,
+    pub token_type: TokenType,
     origin: &'de str,
 }
 
 /// `TokenType` are the valid tokens types that lox code can be lexed into.
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug, Clone)]
 #[doc(hidden)]
 pub enum TokenType {
     // single-character
@@ -59,7 +60,7 @@ pub enum TokenType {
     Var,
     While,
     // // Misc
-    // Eof,
+    Eof,
 }
 
 impl fmt::Display for Token<'_> {
@@ -105,6 +106,7 @@ impl fmt::Display for Token<'_> {
             TokenType::True => write!(f, "TRUE {i} null"),
             TokenType::Var => write!(f, "VAR {i} null"),
             TokenType::While => write!(f, "WHILE {i} null"),
+            TokenType::Eof => write!(f, "EOF  null"),
         }
     }
 }
