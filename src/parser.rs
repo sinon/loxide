@@ -18,16 +18,16 @@ pub enum Expr<'de> {
         operator: Token<'de>,
         right: Box<Expr<'de>>,
     },
-    Literal(Option<f64>, Option<bool>),
+    Literal(Option<f64>, Option<bool>, Option<&'de str>),
 }
 
 impl Display for Expr<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expr::Literal(Some(num), _) => {
+            Expr::Literal(Some(num), _, None) => {
                 write!(f, "{:?}", num)
             }
-            Expr::Literal(None, Some(b)) => match b {
+            Expr::Literal(None, Some(b), None) => match b {
                 true => {
                     write!(f, "true")
                 }
@@ -35,9 +35,10 @@ impl Display for Expr<'_> {
                     write!(f, "false")
                 }
             },
-            Expr::Literal(None, None) => {
+            Expr::Literal(None, None, None) => {
                 write!(f, "nil")
             }
+            Expr::Literal(None, None, Some(s)) => write!(f, "{s}"),
             _ => todo!(),
         }
     }
@@ -136,22 +137,27 @@ impl<'de> Parser<'de> {
 
     fn primary(&mut self) -> Result<Expr<'de>, String> {
         if let Some(token) = self.peek() {
+            let origin = token.origin;
             match token.token_type {
                 TokenType::Number(n) => {
                     self.advance();
-                    return Ok(Expr::Literal(Some(n), None));
+                    return Ok(Expr::Literal(Some(n), None, None));
+                }
+                TokenType::String => {
+                    self.advance();
+                    return Ok(Expr::Literal(None, None, Some(&origin)));
                 }
                 TokenType::True => {
                     self.advance();
-                    return Ok(Expr::Literal(None, Some(true)));
+                    return Ok(Expr::Literal(None, Some(true), None));
                 }
                 TokenType::False => {
                     self.advance();
-                    return Ok(Expr::Literal(None, Some(false)));
+                    return Ok(Expr::Literal(None, Some(false), None));
                 }
                 TokenType::Nil => {
                     self.advance();
-                    return Ok(Expr::Literal(None, None));
+                    return Ok(Expr::Literal(None, None, None));
                 }
                 TokenType::LeftParen => {
                     self.advance();

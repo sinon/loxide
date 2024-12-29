@@ -10,7 +10,7 @@ use miette::{miette, Error, LabeledSpan, Result};
 #[derive(Clone, Debug)]
 pub struct Token<'de> {
     pub token_type: TokenType,
-    origin: &'de str,
+    pub origin: &'de str,
 }
 
 /// `TokenType` are the valid tokens types that lox code can be lexed into.
