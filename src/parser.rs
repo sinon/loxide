@@ -25,7 +25,7 @@ impl Display for Expr<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Expr::Literal(Some(num), _) => {
-                write!(f, "{}", num)
+                write!(f, "{:?}", num)
             }
             Expr::Literal(None, Some(b)) => match b {
                 true => {
