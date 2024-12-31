@@ -1,0 +1,8 @@
+---
+source: tests/lexer_test.rs
+description: "space    tabs\t\t\t\tnewlines\n\n//\n\n\nend//"
+---
+- IDENTIFIER space null
+- IDENTIFIER tabs null
+- IDENTIFIER newlines null
+- IDENTIFIER end null

@@ -11,6 +11,7 @@ use miette::{miette, Error, LabeledSpan, Result};
 pub struct Token<'de> {
     pub token_type: TokenType,
     pub origin: &'de str,
+    pub line: usize,
 }
 
 /// `TokenType` are the valid tokens types that lox code can be lexed into.
@@ -176,24 +177,25 @@ impl<'de> Iterator for Lexer<'de> {
                 CodeComment,
             }
 
-            let res = move |t_type: TokenType| {
+            let res = move |t_type: TokenType, line_num: usize| {
                 Some(Ok(Token {
                     token_type: t_type,
                     origin: c_str,
+                    line: line_num,
                 }))
             };
 
             let started = match c {
-                '(' => return res(TokenType::LeftParen),
-                ')' => return res(TokenType::RightParen),
-                '{' => return res(TokenType::LeftBrace),
-                '}' => return res(TokenType::RightBrace),
-                ',' => return res(TokenType::Comma),
-                '.' => return res(TokenType::Dot),
-                '-' => return res(TokenType::Minus),
-                '+' => return res(TokenType::Plus),
-                '*' => return res(TokenType::Star),
-                ';' => return res(TokenType::Semicolon),
+                '(' => return res(TokenType::LeftParen, self.line_num),
+                ')' => return res(TokenType::RightParen, self.line_num),
+                '{' => return res(TokenType::LeftBrace, self.line_num),
+                '}' => return res(TokenType::RightBrace, self.line_num),
+                ',' => return res(TokenType::Comma, self.line_num),
+                '.' => return res(TokenType::Dot, self.line_num),
+                '-' => return res(TokenType::Minus, self.line_num),
+                '+' => return res(TokenType::Plus, self.line_num),
+                '*' => return res(TokenType::Star, self.line_num),
+                ';' => return res(TokenType::Semicolon, self.line_num),
                 '"' => Started::String,
                 '0'..='9' => Started::Number,
                 'a'..='z' | 'A'..='Z' => Started::Identifier,
@@ -237,6 +239,7 @@ impl<'de> Iterator for Lexer<'de> {
                         return Some(Ok(Token {
                             token_type: TokenType::Slash,
                             origin: c_str,
+                            line: self.line_num,
                         }));
                     }
                 }
@@ -257,6 +260,7 @@ impl<'de> Iterator for Lexer<'de> {
                         return Some(Ok(Token {
                             token_type: TokenType::String,
                             origin: c_str,
+                            line: self.line_num,
                         }));
                     }
                 }
@@ -277,6 +281,7 @@ impl<'de> Iterator for Lexer<'de> {
                                         return Some(Ok(Token {
                                             token_type: TokenType::Number(num),
                                             origin: c_str,
+                                            line: self.line_num,
                                         }));
                                     } else {
                                         c_str = &c_onwards
@@ -290,6 +295,7 @@ impl<'de> Iterator for Lexer<'de> {
                                 return Some(Ok(Token {
                                     token_type: TokenType::Number(num),
                                     origin: c_str,
+                                    line: self.line_num,
                                 }));
                             }
                         }
@@ -298,6 +304,7 @@ impl<'de> Iterator for Lexer<'de> {
                             return Some(Ok(Token {
                                 token_type: TokenType::Number(num),
                                 origin: c_str,
+                                line: self.line_num,
                             }));
                         }
                     }
@@ -313,6 +320,7 @@ impl<'de> Iterator for Lexer<'de> {
                                     return Some(Ok(Token {
                                         token_type: x,
                                         origin: c_str,
+                                        line: self.line_num,
                                     }));
                                 }
                             }
@@ -326,11 +334,13 @@ impl<'de> Iterator for Lexer<'de> {
                                     return Some(Ok(Token {
                                         token_type: x,
                                         origin: c_str,
+                                        line: self.line_num,
                                     }));
                                 }
                                 return Some(Ok(Token {
                                     token_type: TokenType::Identifier,
                                     origin: c_str,
+                                    line: self.line_num,
                                 }));
                             }
                         }
@@ -339,12 +349,14 @@ impl<'de> Iterator for Lexer<'de> {
                                 return Some(Ok(Token {
                                     token_type: x,
                                     origin: c_str,
+                                    line: self.line_num,
                                 }));
                             }
 
                             return Some(Ok(Token {
                                 token_type: TokenType::Identifier,
                                 origin: c_str,
+                                line: self.line_num,
                             }));
                         }
                     }
@@ -357,12 +369,14 @@ impl<'de> Iterator for Lexer<'de> {
                         let token = Token {
                             token_type: then,
                             origin: c_str,
+                            line: self.line_num,
                         };
                         return Some(Ok(token));
                     } else {
                         let token = Token {
                             token_type: else_t,
                             origin: c_str,
+                            line: self.line_num,
                         };
                         return Some(Ok(token));
                     }

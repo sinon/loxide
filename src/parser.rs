@@ -166,6 +166,7 @@ impl<'de> Parser<'de> {
     fn primary(&mut self) -> Result<Expr<'de>, String> {
         if let Some(token) = self.peek() {
             let origin = token.origin;
+            let line_num = token.line;
             match token.token_type {
                 TokenType::Number(n) => {
                     self.advance();
@@ -190,14 +191,24 @@ impl<'de> Parser<'de> {
                 TokenType::LeftParen => {
                     self.advance();
                     let expr = self.expression()?;
-                    self.consume(TokenType::RightParen, "Expect ')' after expression")?;
+                    self.consume(
+                        TokenType::RightParen,
+                        &origin,
+                        line_num,
+                        "Expect ')' after expression",
+                    )?;
                     return Ok(Expr::Grouping(Box::new(expr)));
                 }
-                _ => {}
+                _ => {
+                    let err_msg = self
+                        .error_msg(&origin, line_num, "Expect expression")
+                        .to_string();
+                    return Err(err_msg);
+                }
             }
+        } else {
+            Err("error".to_string())
         }
-
-        Err("Expect expression.".to_string())
     }
 
     // Helper methods
@@ -242,11 +253,21 @@ impl<'de> Parser<'de> {
         }
     }
 
-    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<&Token<'de>, String> {
+    fn consume(
+        &mut self,
+        token_type: TokenType,
+        origin: &str,
+        num: usize,
+        message: &str,
+    ) -> Result<&Token<'de>, String> {
         if self.check(&token_type) {
             Ok(self.advance())
         } else {
-            Err(message.to_string())
+            Err(self.error_msg(&origin, num, message))
         }
+    }
+
+    fn error_msg(&self, origin: &str, num: usize, message: &str) -> String {
+        format!("[line {}] Error at '{}': {}.", num, origin, message)
     }
 }

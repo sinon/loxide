@@ -1,0 +1,6 @@
+---
+source: tests/lexer_test.rs
+description: "\"\"\n\"string\""
+---
+- "STRING \"\" "
+- "STRING \"string\" string"
