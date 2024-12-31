@@ -49,11 +49,12 @@ fn main() -> Result<ExitCode> {
                 .into_diagnostic()
                 .wrap_err_with(|| "reading file".to_string())?;
             let tokens: Vec<Token> = Lexer::new(&_input).filter_map(Result::ok).collect();
-            for exp in Parser::new(tokens).take_while(|x| !x.is_err()) {
+            for exp in Parser::new(tokens) {
                 match exp {
                     Ok(e) => println!("{e}"),
-                    Err(_) => {
-                        // break;
+                    Err(err) => {
+                        eprintln!("{err}");
+                        break;
                     }
                 }
             }

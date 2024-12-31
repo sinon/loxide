@@ -33,6 +33,7 @@ fn test_parser_literals(#[case] input: &str) {
 #[rstest]
 #[case("(\"foo\")")]
 #[case("(1)")]
+#[case("((true))")]
 fn test_parser_parentheses(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let tokens: Vec<Token> = Lexer::new(input).filter_map(Result::ok).collect();

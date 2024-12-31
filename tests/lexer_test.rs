@@ -174,3 +174,16 @@ fn test_errors() {
     let e_msg = out[1].as_ref().err().expect("").to_string();
     assert_eq!(e_msg, "[line 1] Error: Unterminated string.");
 }
+
+#[test]
+fn test_group_literal() {
+    let out = Lexer::new("((true))")
+        .into_iter()
+        .filter_map(Result::ok)
+        .map(|x| format!("{x}"))
+        .collect::<Vec<String>>()
+        .join("\n");
+    assert_eq!(
+        out, "LEFT_PAREN ( null\nLEFT_PAREN ( null\nTRUE true null\nRIGHT_PAREN ) null\nRIGHT_PAREN ) null"
+    );
+}

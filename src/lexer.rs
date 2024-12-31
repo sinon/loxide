@@ -151,7 +151,7 @@ impl<'de> Lexer<'de> {
             "true" => Some(TokenType::True),
             "var" => Some(TokenType::Var),
             "while" => Some(TokenType::While),
-            _ => None,
+            _ => Some(TokenType::Identifier),
         }
     }
 }
@@ -306,6 +306,7 @@ impl<'de> Iterator for Lexer<'de> {
                     let next_char = chars.next();
 
                     match next_char {
+                        // TODO: Review this
                         Some((_, cn)) => {
                             if cn == ' ' || cn == '\n' {
                                 if let Some(x) = self.match_reserved_word(c_str) {
@@ -321,6 +322,12 @@ impl<'de> Iterator for Lexer<'de> {
                                 self.byte += cn.len_utf8();
                                 continue;
                             } else {
+                                if let Some(x) = self.match_reserved_word(c_str) {
+                                    return Some(Ok(Token {
+                                        token_type: x,
+                                        origin: c_str,
+                                    }));
+                                }
                                 return Some(Ok(Token {
                                     token_type: TokenType::Identifier,
                                     origin: c_str,
