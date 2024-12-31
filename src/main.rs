@@ -53,8 +53,9 @@ fn main() -> Result<ExitCode> {
                 match exp {
                     Ok(e) => println!("{e}"),
                     Err(err) => {
+                        exit_code = 65;
                         eprintln!("{err}");
-                        break;
+                        continue;
                     }
                 }
             }

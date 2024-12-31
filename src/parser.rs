@@ -68,7 +68,14 @@ impl<'de> Iterator for Parser<'de> {
     type Item = Result<Expr<'de>, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.expression())
+        let exp = self.expression();
+        match exp {
+            Ok(e) => Some(Ok(e)),
+            Err(err) => {
+                eprintln!("{}", err);
+                None
+            }
+        }
     }
 }
 

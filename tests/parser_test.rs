@@ -123,15 +123,17 @@ fn test_parser_equality(#[case] input: &str) {
     assert_snapshot!(exprs.join("\n"));
 }
 
-#[test]
-fn test_parser_error() {
-    let input = "(72 +)";
+#[rstest]
+#[case("(72 +)")]
+#[case("\"foo")]
+fn test_parser_error(#[case] input: &str) {
+    set_snapshot_suffix!("{}", input);
     let tokens: Vec<Token> = Lexer::new(&input).filter_map(Result::ok).collect();
     for expr in Parser::new(tokens) {
         match expr {
             Ok(_) => todo!(),
             Err(err) => {
-                assert_eq!(err, "[line 1] Error at ')': Expect expression.");
+                assert_snapshot!(err);
                 break;
             }
         }
