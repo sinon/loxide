@@ -12,9 +12,15 @@ repository = "https://github.com/sinon/loxide"
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
 miette = { version = "7.4.0", features = ["fancy"] }
+rstest = "0.23.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.14"
+insta = { version = "1.41.1", features = ["yaml"] }
+
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3
 
 # [profile.ci.junit]
 # path = "../../../reports/results.xml"

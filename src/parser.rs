@@ -1,3 +1,9 @@
+//! Parser
+//!
+//! Responsible for transforming a given token stream into an AST
+//!
+//! Uses a recursive desecent parser. To transform the token stream into
+//! `Expr`
 use std::fmt::Display;
 
 use crate::lexer::{Token, TokenType};
@@ -39,8 +45,26 @@ impl Display for Expr<'_> {
                 write!(f, "nil")
             }
             Expr::Literal(None, None, Some(s)) => write!(f, "{s}"),
-            _ => todo!(),
+            Expr::Unary { operator, right } => {
+                write!(f, "({} {})", operator.origin, right)
+            }
+            Expr::Binary {
+                left,
+                operator,
+                right,
+            } => {
+                write!(f, "({} {} {})", operator.origin, left, right)
+            }
+            _ => todo!("{:?}", self),
         }
+    }
+}
+
+impl<'de> Iterator for Parser<'de> {
+    type Item = Result<Expr<'de>, String>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.expression())
     }
 }
 
@@ -203,7 +227,7 @@ impl<'de> Parser<'de> {
     }
 
     fn previous(&self) -> &Token<'de> {
-        &self.tokens[0]
+        &self.tokens.get(self.current - 1).unwrap()
     }
 
     fn is_at_end(&self) -> bool {
