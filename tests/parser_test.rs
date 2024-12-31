@@ -31,6 +31,22 @@ fn test_parser_literals(#[case] input: &str) {
 }
 
 #[rstest]
+#[case("(\"foo\")")]
+#[case("(1)")]
+fn test_parser_parentheses(#[case] input: &str) {
+    set_snapshot_suffix!("{}", input);
+    let tokens: Vec<Token> = Lexer::new(input).filter_map(Result::ok).collect();
+    let exprs: Vec<String> = Parser::new(tokens)
+        .take_while(|x| x.is_ok())
+        .map(|e| match e {
+            Ok(exp) => format!("{}", exp),
+            Err(_) => "".to_string(),
+        })
+        .collect();
+    assert_snapshot!(exprs.join("\n"));
+}
+
+#[rstest]
 #[case("!true")]
 #[case("!false")]
 #[case("-10")]

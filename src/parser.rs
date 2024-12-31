@@ -25,6 +25,7 @@ pub enum Expr<'de> {
         right: Box<Expr<'de>>,
     },
     Literal(Option<f64>, Option<bool>, Option<&'de str>),
+    Grouping(Box<Expr<'de>>),
 }
 
 impl Display for Expr<'_> {
@@ -54,6 +55,9 @@ impl Display for Expr<'_> {
                 right,
             } => {
                 write!(f, "({} {} {})", operator.origin, left, right)
+            }
+            Expr::Grouping(exp) => {
+                write!(f, "(group {})", exp)
             }
             _ => todo!("{:?}", self),
         }
@@ -187,7 +191,7 @@ impl<'de> Parser<'de> {
                     self.advance();
                     let expr = self.expression()?;
                     self.consume(TokenType::RightParen, "Expect ')' after expression")?;
-                    return Ok(expr);
+                    return Ok(Expr::Grouping(Box::new(expr)));
                 }
                 _ => {}
             }
