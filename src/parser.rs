@@ -17,6 +17,19 @@ pub struct Parser<'a> {
     has_lex_error: bool,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+/// `LiteralAtom` represents the types of literals supported by Lox
+pub enum LiteralAtom<'de> {
+    /// `String` literal for example `"foo"`
+    String(&'de str),
+    /// Number literal for example `123.1``
+    Number(f64),
+    /// Nil literal
+    Nil,
+    /// Bool literals `false` or `true`
+    Bool(bool),
+}
+
 #[derive(Debug)]
 /// `Expr` represents a unit of an AST
 pub enum Expr<'de> {
@@ -37,7 +50,7 @@ pub enum Expr<'de> {
         right: Box<Expr<'de>>,
     },
     /// `Literal` is a value
-    Literal(Option<f64>, Option<bool>, Option<&'de str>),
+    Literal(LiteralAtom<'de>),
     /// `Grouping` holds other `Expr` such as `(1 * 2)`
     Grouping(Box<Expr<'de>>),
 }
@@ -45,25 +58,6 @@ pub enum Expr<'de> {
 impl Display for Expr<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            // number literal
-            Expr::Literal(Some(num), _, None) => {
-                write!(f, "{:?}", num)
-            }
-            // bool literal
-            Expr::Literal(None, Some(b), None) => match b {
-                true => {
-                    write!(f, "true")
-                }
-                false => {
-                    write!(f, "false")
-                }
-            },
-            // nil literal
-            Expr::Literal(None, None, None) => {
-                write!(f, "nil")
-            }
-            // string literal
-            Expr::Literal(None, None, Some(s)) => write!(f, "{s}"),
             Expr::Unary { operator, right } => {
                 write!(f, "({} {})", operator.origin, right)
             }
@@ -77,9 +71,12 @@ impl Display for Expr<'_> {
             Expr::Grouping(exp) => {
                 write!(f, "(group {})", exp)
             }
-            // TODO: Better data types should make these unrepresentible
-            Expr::Literal(None, Some(_), Some(_)) => panic!(),
-            Expr::Literal(Some(_), _, Some(_)) => panic!(),
+            Expr::Literal(literal_atom) => match literal_atom {
+                LiteralAtom::String(cow) => write!(f, "{}", cow),
+                LiteralAtom::Number(num) => write!(f, "{:?}", num),
+                LiteralAtom::Nil => write!(f, "nil"),
+                LiteralAtom::Bool(b) => write!(f, "{b:?}"),
+            },
         }
     }
 }
@@ -240,23 +237,23 @@ impl<'de> Parser<'de> {
             match token.token_type {
                 TokenType::Number(n) => {
                     self.advance();
-                    Ok(Expr::Literal(Some(n), None, None))
+                    Ok(Expr::Literal(LiteralAtom::Number(n)))
                 }
                 TokenType::String => {
                     self.advance();
-                    Ok(Expr::Literal(None, None, Some(origin)))
+                    Ok(Expr::Literal(LiteralAtom::String(origin)))
                 }
                 TokenType::True => {
                     self.advance();
-                    Ok(Expr::Literal(None, Some(true), None))
+                    Ok(Expr::Literal(LiteralAtom::Bool(true)))
                 }
                 TokenType::False => {
                     self.advance();
-                    Ok(Expr::Literal(None, Some(false), None))
+                    Ok(Expr::Literal(LiteralAtom::Bool(false)))
                 }
                 TokenType::Nil => {
                     self.advance();
-                    Ok(Expr::Literal(None, None, None))
+                    Ok(Expr::Literal(LiteralAtom::Nil))
                 }
                 TokenType::LeftParen => {
                     self.advance();
