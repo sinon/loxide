@@ -4,3 +4,4 @@ description: "\"\"\n\"string\""
 ---
 - "STRING \"\" "
 - "STRING \"string\" string"
+- EOF  null

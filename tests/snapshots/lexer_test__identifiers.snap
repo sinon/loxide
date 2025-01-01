@@ -1,6 +1,6 @@
 ---
 source: tests/lexer_test.rs
-expression: output
+description: "andy formless fo _ _123 _abc ab123\nabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
 ---
 - IDENTIFIER andy null
 - IDENTIFIER formless null
@@ -10,3 +10,4 @@ expression: output
 - IDENTIFIER _abc null
 - IDENTIFIER ab123 null
 - IDENTIFIER abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_ null
+- EOF  null

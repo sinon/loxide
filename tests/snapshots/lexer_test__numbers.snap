@@ -11,3 +11,4 @@ description: "123\n123.456\n.457\n123.\n90\n523."
 - NUMBER 90 90.0
 - NUMBER 523 523.0
 - DOT . null
+- EOF  null

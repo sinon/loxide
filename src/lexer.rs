@@ -70,7 +70,6 @@ impl fmt::Display for Token<'_> {
         match self.token_type {
             TokenType::RightParen => write!(f, "RIGHT_PAREN {i} null"),
             TokenType::LeftParen => write!(f, "LEFT_PAREN {i} null"),
-            // TokenType::Eof => write!(f, "EOF  null"),
             TokenType::RightBrace => write!(f, "RIGHT_BRACE {i} null"),
             TokenType::LeftBrace => write!(f, "LEFT_BRACE {i} null"),
             TokenType::Comma => write!(f, "COMMA {i} null"),
@@ -122,6 +121,7 @@ pub struct Lexer<'de> {
     rest: &'de str,
     byte: usize,
     line_num: usize,
+    at_eof: bool,
 }
 
 impl<'de> Lexer<'de> {
@@ -132,6 +132,7 @@ impl<'de> Lexer<'de> {
             whole: input,
             byte: 0,
             line_num: 1,
+            at_eof: false,
         }
     }
     fn match_reserved_word(&mut self, c_str: &str) -> Option<TokenType> {
@@ -161,31 +162,36 @@ impl<'de> Iterator for Lexer<'de> {
     type Item = Result<Token<'de>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.at_eof {
+            return None;
+        }
         loop {
             let mut chars = self.rest.char_indices();
-            let (at, c) = chars.next()?;
-            let mut c_str = &self.rest[at..at + c.len_utf8()];
-            let c_onwards = self.rest;
-            self.rest = chars.as_str();
-            self.byte += c.len_utf8();
+            match chars.next() {
+                Some(x) => {
+                    let (at, c) = x;
+                    let mut c_str = &self.rest[at..at + c.len_utf8()];
+                    let c_onwards = self.rest;
+                    self.rest = chars.as_str();
+                    self.byte += c.len_utf8();
 
-            enum Started {
-                String,
-                Number,
-                Identifier,
-                IfNextEqual(TokenType, TokenType),
-                CodeComment,
-            }
+                    enum Started {
+                        String,
+                        Number,
+                        Identifier,
+                        IfNextEqual(TokenType, TokenType),
+                        CodeComment,
+                    }
 
-            let res = move |t_type: TokenType, line_num: usize| {
-                Some(Ok(Token {
-                    token_type: t_type,
-                    origin: c_str,
-                    line: line_num,
-                }))
-            };
+                    let res = move |t_type: TokenType, line_num: usize| {
+                        Some(Ok(Token {
+                            token_type: t_type,
+                            origin: c_str,
+                            line: line_num,
+                        }))
+                    };
 
-            let started = match c {
+                    let started = match c {
                 '(' => return res(TokenType::LeftParen, self.line_num),
                 ')' => return res(TokenType::RightParen, self.line_num),
                 '{' => return res(TokenType::LeftBrace, self.line_num),
@@ -220,168 +226,178 @@ impl<'de> Iterator for Lexer<'de> {
                     }
             };
 
-            match started {
-                Started::CodeComment => {
-                    if self.rest.starts_with("/") {
-                        let eol = self.rest.find("\n");
-                        match eol {
-                            Some(idx) => {
-                                self.byte += idx;
-                                self.rest = &self.rest[idx..];
-                            }
-                            None => {
-                                self.byte = self.whole.len();
-                                self.rest = &self.rest[self.rest.len()..self.rest.len()];
-                                return None;
+                    match started {
+                        Started::CodeComment => {
+                            if self.rest.starts_with("/") {
+                                let eol = self.rest.find("\n");
+                                match eol {
+                                    Some(idx) => {
+                                        self.byte += idx;
+                                        self.rest = &self.rest[idx..];
+                                    }
+                                    None => {
+                                        self.byte = self.whole.len();
+                                        self.rest = &self.rest[self.rest.len()..self.rest.len()];
+                                    }
+                                }
+                            } else {
+                                return Some(Ok(Token {
+                                    token_type: TokenType::Slash,
+                                    origin: c_str,
+                                    line: self.line_num,
+                                }));
                             }
                         }
-                    } else {
-                        return Some(Ok(Token {
-                            token_type: TokenType::Slash,
-                            origin: c_str,
-                            line: self.line_num,
-                        }));
-                    }
-                }
-                Started::String => {
-                    if !self.rest.contains('"') {
-                        // Scan to end, we cannot continue to scan for tokens when in an unterminated string
-                        self.byte = self.whole.len();
-                        self.rest = &self.rest[self.rest.len()..self.rest.len()];
-                        return Some(Err(
+                        Started::String => {
+                            if !self.rest.contains('"') {
+                                // Scan to end, we cannot continue to scan for tokens when in an unterminated string
+                                self.byte = self.whole.len();
+                                self.rest = &self.rest[self.rest.len()..self.rest.len()];
+                                return Some(Err(
                         miette! {labels = vec![LabeledSpan::at(self.byte -c.len_utf8()..self.byte, "this unterminated string")],
                         "[line {}] Error: Unterminated string.", self.line_num}.with_source_code(self.whole.to_string())
                     ));
-                    } else {
-                        let (s, _) = self.rest.split_once("\"")?;
-                        let c_str = &c_onwards[1..s.len() + 1];
-                        self.byte += s.len() + 1;
-                        self.rest = &self.rest[s.len() + 1..];
-                        return Some(Ok(Token {
-                            token_type: TokenType::String,
-                            origin: c_str,
-                            line: self.line_num,
-                        }));
-                    }
-                }
-                Started::Number => loop {
-                    let next_num = chars.next();
-                    match next_num {
-                        Some((_, cn)) => {
-                            if cn.is_numeric() {
-                                c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
-                                self.rest = chars.as_str();
-                                self.byte += cn.len_utf8();
-                                continue;
-                            } else if cn == '.' {
-                                if let Some((_, c_peek)) = chars.next() {
-                                    // 456. != 456.0 but unstead 456 DOT
-                                    if !c_peek.is_numeric() {
-                                        let num = c_str.parse().unwrap();
+                            } else {
+                                let (s, _) = self.rest.split_once("\"")?;
+                                let c_str = &c_onwards[1..s.len() + 1];
+                                self.byte += s.len() + 1;
+                                self.rest = &self.rest[s.len() + 1..];
+                                return Some(Ok(Token {
+                                    token_type: TokenType::String,
+                                    origin: c_str,
+                                    line: self.line_num,
+                                }));
+                            }
+                        }
+                        Started::Number => loop {
+                            let next_num = chars.next();
+                            match next_num {
+                                Some((_, cn)) => {
+                                    if cn.is_numeric() {
+                                        c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
+                                        self.rest = chars.as_str();
+                                        self.byte += cn.len_utf8();
+                                        continue;
+                                    } else if cn == '.' {
+                                        if let Some((_, c_peek)) = chars.next() {
+                                            // 456. != 456.0 but unstead 456 DOT
+                                            if !c_peek.is_numeric() {
+                                                let num = c_str.parse().unwrap();
+                                                return Some(Ok(Token {
+                                                    token_type: TokenType::Number(num),
+                                                    origin: c_str,
+                                                    line: self.line_num,
+                                                }));
+                                            } else {
+                                                c_str = &c_onwards[at..c_str.len()
+                                                    + cn.len_utf8()
+                                                    + c_peek.len_utf8()];
+                                                self.rest = chars.as_str();
+                                                self.byte += cn.len_utf8() + c_peek.len_utf8();
+                                            }
+                                        }
+                                    } else {
+                                        let num: f64 = c_str.parse().unwrap();
                                         return Some(Ok(Token {
                                             token_type: TokenType::Number(num),
                                             origin: c_str,
                                             line: self.line_num,
                                         }));
-                                    } else {
-                                        c_str = &c_onwards
-                                            [at..c_str.len() + cn.len_utf8() + c_peek.len_utf8()];
-                                        self.rest = chars.as_str();
-                                        self.byte += cn.len_utf8() + c_peek.len_utf8();
                                     }
                                 }
-                            } else {
-                                let num: f64 = c_str.parse().unwrap();
-                                return Some(Ok(Token {
-                                    token_type: TokenType::Number(num),
-                                    origin: c_str,
-                                    line: self.line_num,
-                                }));
-                            }
-                        }
-                        None => {
-                            let num: f64 = c_str.parse().unwrap();
-                            return Some(Ok(Token {
-                                token_type: TokenType::Number(num),
-                                origin: c_str,
-                                line: self.line_num,
-                            }));
-                        }
-                    }
-                },
-                Started::Identifier => loop {
-                    let next_char = chars.next();
-
-                    match next_char {
-                        // TODO: Review this
-                        Some((_, cn)) => {
-                            if cn == ' ' || cn == '\n' {
-                                if let Some(x) = self.match_reserved_word(c_str) {
+                                None => {
+                                    let num: f64 = c_str.parse().unwrap();
                                     return Some(Ok(Token {
-                                        token_type: x,
+                                        token_type: TokenType::Number(num),
                                         origin: c_str,
                                         line: self.line_num,
                                     }));
                                 }
                             }
-                            if cn.is_alphanumeric() || cn == '_' {
-                                c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
-                                self.rest = chars.as_str();
-                                self.byte += cn.len_utf8();
-                                continue;
-                            } else {
-                                if let Some(x) = self.match_reserved_word(c_str) {
+                        },
+                        Started::Identifier => loop {
+                            let next_char = chars.next();
+
+                            match next_char {
+                                // TODO: Review this
+                                Some((_, cn)) => {
+                                    if cn == ' ' || cn == '\n' {
+                                        if let Some(x) = self.match_reserved_word(c_str) {
+                                            return Some(Ok(Token {
+                                                token_type: x,
+                                                origin: c_str,
+                                                line: self.line_num,
+                                            }));
+                                        }
+                                    }
+                                    if cn.is_alphanumeric() || cn == '_' {
+                                        c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
+                                        self.rest = chars.as_str();
+                                        self.byte += cn.len_utf8();
+                                        continue;
+                                    } else {
+                                        if let Some(x) = self.match_reserved_word(c_str) {
+                                            return Some(Ok(Token {
+                                                token_type: x,
+                                                origin: c_str,
+                                                line: self.line_num,
+                                            }));
+                                        }
+                                        return Some(Ok(Token {
+                                            token_type: TokenType::Identifier,
+                                            origin: c_str,
+                                            line: self.line_num,
+                                        }));
+                                    }
+                                }
+                                None => {
+                                    if let Some(x) = self.match_reserved_word(c_str) {
+                                        return Some(Ok(Token {
+                                            token_type: x,
+                                            origin: c_str,
+                                            line: self.line_num,
+                                        }));
+                                    }
+
                                     return Some(Ok(Token {
-                                        token_type: x,
+                                        token_type: TokenType::Identifier,
                                         origin: c_str,
                                         line: self.line_num,
                                     }));
                                 }
-                                return Some(Ok(Token {
-                                    token_type: TokenType::Identifier,
+                            }
+                        },
+                        Started::IfNextEqual(then, else_t) => {
+                            if self.rest.starts_with("=") {
+                                let c_str = &c_onwards[..2];
+                                self.byte += 1;
+                                self.rest = &self.rest[1..];
+                                let token = Token {
+                                    token_type: then,
                                     origin: c_str,
                                     line: self.line_num,
-                                }));
-                            }
-                        }
-                        None => {
-                            if let Some(x) = self.match_reserved_word(c_str) {
-                                return Some(Ok(Token {
-                                    token_type: x,
+                                };
+                                return Some(Ok(token));
+                            } else {
+                                let token = Token {
+                                    token_type: else_t,
                                     origin: c_str,
                                     line: self.line_num,
-                                }));
+                                };
+                                return Some(Ok(token));
                             }
-
-                            return Some(Ok(Token {
-                                token_type: TokenType::Identifier,
-                                origin: c_str,
-                                line: self.line_num,
-                            }));
                         }
-                    }
-                },
-                Started::IfNextEqual(then, else_t) => {
-                    if self.rest.starts_with("=") {
-                        let c_str = &c_onwards[..2];
-                        self.byte += 1;
-                        self.rest = &self.rest[1..];
-                        let token = Token {
-                            token_type: then,
-                            origin: c_str,
-                            line: self.line_num,
-                        };
-                        return Some(Ok(token));
-                    } else {
-                        let token = Token {
-                            token_type: else_t,
-                            origin: c_str,
-                            line: self.line_num,
-                        };
-                        return Some(Ok(token));
-                    }
+                    };
                 }
-            };
+                None => {
+                    self.at_eof = true;
+                    return Some(Ok(Token {
+                        token_type: TokenType::Eof,
+                        origin: "",
+                        line: self.line_num,
+                    }));
+                }
+            }
         }
     }
 }

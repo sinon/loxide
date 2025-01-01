@@ -11,6 +11,7 @@ use crate::lexer::{Token, TokenType};
 pub struct Parser<'a> {
     tokens: Vec<Token<'a>>,
     current: usize,
+    parse_failed: bool,
 }
 
 #[derive(Debug)]
@@ -68,12 +69,17 @@ impl<'de> Iterator for Parser<'de> {
     type Item = Result<Expr<'de>, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.is_at_end() || self.parse_failed {
+            return None;
+        }
+
         let exp = self.expression();
         match exp {
             Ok(e) => Some(Ok(e)),
             Err(err) => {
                 eprintln!("{}", err);
-                None
+                self.parse_failed = true;
+                Some(Err(err))
             }
         }
     }
@@ -81,7 +87,11 @@ impl<'de> Iterator for Parser<'de> {
 
 impl<'de> Parser<'de> {
     pub fn new(tokens: Vec<Token<'de>>) -> Self {
-        Parser { tokens, current: 0 }
+        Parser {
+            tokens,
+            current: 0,
+            parse_failed: false,
+        }
     }
 
     pub fn expression(&mut self) -> Result<Expr<'de>, String> {
@@ -208,7 +218,7 @@ impl<'de> Parser<'de> {
                 }
                 _ => {
                     let err_msg = self
-                        .error_msg(&origin, line_num, "Expect expression")
+                        .error_msg(&token.token_type, &origin, line_num, "Expect expression")
                         .to_string();
                     return Err(err_msg);
                 }
@@ -270,11 +280,15 @@ impl<'de> Parser<'de> {
         if self.check(&token_type) {
             Ok(self.advance())
         } else {
-            Err(self.error_msg(&origin, num, message))
+            Err(self.error_msg(&token_type, &origin, num, message))
         }
     }
 
-    fn error_msg(&self, origin: &str, num: usize, message: &str) -> String {
-        format!("[line {}] Error at '{}': {}.", num, origin, message)
+    fn error_msg(&self, token_type: &TokenType, origin: &str, num: usize, message: &str) -> String {
+        if *token_type == TokenType::Eof {
+            format!("[line {}] Error at end: {}.", num, message)
+        } else {
+            format!("[line {}] Error at '{}': {}.", num, origin, message)
+        }
     }
 }

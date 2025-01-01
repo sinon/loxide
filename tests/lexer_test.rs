@@ -116,9 +116,10 @@ fn test_errors() {
     let out = Lexer::new("#\"//")
         .into_iter()
         .collect::<Vec<Result<Token, Error>>>();
-    assert_eq!(out.len(), 2);
+    assert_eq!(out.len(), 3);
     assert_eq!(out[0].is_err(), true);
     assert_eq!(out[1].is_err(), true);
+    assert_eq!(out[2].is_err(), false);
     let e = out[0].as_ref().err().expect("").to_string();
     assert_eq!(e, "[line 1] Error: Unexpected character: #");
     let e_msg = out[1].as_ref().err().expect("").to_string();
@@ -134,6 +135,6 @@ fn test_group_literal() {
         .collect::<Vec<String>>()
         .join("\n");
     assert_eq!(
-        out, "LEFT_PAREN ( null\nLEFT_PAREN ( null\nTRUE true null\nRIGHT_PAREN ) null\nRIGHT_PAREN ) null"
+        out, "LEFT_PAREN ( null\nLEFT_PAREN ( null\nTRUE true null\nRIGHT_PAREN ) null\nRIGHT_PAREN ) null\nEOF  null"
     );
 }

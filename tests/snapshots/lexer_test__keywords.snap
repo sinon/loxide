@@ -18,3 +18,4 @@ description: and class else false for fun if nil or return super this true var w
 - VAR var null
 - WHILE while null
 - PRINT print null
+- EOF  null

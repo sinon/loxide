@@ -138,15 +138,4 @@ fn test_parser_error(#[case] input: &str) {
             }
         }
     }
-    // let exprs: Vec<String> = Parser::new(tokens)
-    //     .take_while(|x| !x.is_err())
-    //     .map(|e| match e {
-    //         Ok(exp) => format!("{}", exp),
-    //         Err(err) => panic!("!"),
-    //     })
-    //     .collect();
-    // assert_eq!(
-    //     exprs.join("\n"),
-    //     "[line 1] Error at ')': Expect expression."
-    // )
 }

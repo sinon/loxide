@@ -1,0 +1,7 @@
+---
+source: tests/parser_test.rs
+assertion_line: 136
+description: "\"foo"
+snapshot_kind: text
+---
+[line 1] Error at end: Expect expression.

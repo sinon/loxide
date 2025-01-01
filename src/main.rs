@@ -48,13 +48,29 @@ fn main() -> Result<ExitCode> {
             let _input = fs::read_to_string(filename)
                 .into_diagnostic()
                 .wrap_err_with(|| "reading file".to_string())?;
-            let tokens: Vec<Token> = Lexer::new(&_input).filter_map(Result::ok).collect();
-            for exp in Parser::new(tokens) {
+            // let tokens: Vec<Result<Token, MError>> = Lexer::new(&_input).into_iter().collect();
+            // for token in tokens {
+            //     match token {
+            //         Ok(_) => {}
+            //         Err(e) => {
+            //             // eprintln!("{e}");
+            //             // exit_code = 65;
+            //             continue;
+            //         }
+            //     }
+            // }
+            let tokens: Vec<Token> = Lexer::new(&_input)
+                .into_iter()
+                .filter_map(Result::ok)
+                .collect();
+            let parser = Parser::new(tokens);
+            for exp in parser {
                 match exp {
-                    Ok(e) => println!("{e}"),
-                    Err(err) => {
+                    Ok(e) => {
+                        println!("{e}");
+                    }
+                    Err(_) => {
                         exit_code = 65;
-                        eprintln!("{err}");
                         continue;
                     }
                 }
