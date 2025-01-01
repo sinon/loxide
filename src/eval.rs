@@ -7,20 +7,20 @@ use std::fmt::Display;
 
 use crate::parser::{Expr, LiteralAtom, Parser};
 
-pub enum EvaltuatedValue<'de> {
+pub enum EvaluatedValue<'de> {
     String(&'de str),
     Number(f64),
     Nil,
     Bool(bool),
 }
 
-impl Display for EvaltuatedValue<'_> {
+impl Display for EvaluatedValue<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            EvaltuatedValue::String(s) => write!(f, "{s}"),
-            EvaltuatedValue::Number(n) => write!(f, "{n}"),
-            EvaltuatedValue::Nil => write!(f, "nil"),
-            EvaltuatedValue::Bool(b) => write!(f, "{b:}"),
+            EvaluatedValue::String(s) => write!(f, "{s}"),
+            EvaluatedValue::Number(n) => write!(f, "{n}"),
+            EvaluatedValue::Nil => write!(f, "nil"),
+            EvaluatedValue::Bool(b) => write!(f, "{b:}"),
         }
     }
 }
@@ -38,33 +38,40 @@ impl<'de> Eval<'de> {
 }
 
 impl<'de> Iterator for Eval<'de> {
-    type Item = Result<EvaltuatedValue<'de>, String>;
+    type Item = Result<EvaluatedValue<'de>, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let expr = self.parser.next()?;
 
         match expr {
-            Ok(e) => match e {
-                Expr::Binary {
-                    left,
-                    operator,
-                    right,
-                } => {}
-                Expr::Unary { operator, right } => todo!(),
-                Expr::Literal(literal_atom) => match literal_atom {
-                    LiteralAtom::String(s) => {
-                        return Some(Ok(EvaltuatedValue::String(s)));
-                    }
-                    LiteralAtom::Number(num) => return Some(Ok(EvaltuatedValue::Number(num))),
-                    LiteralAtom::Nil => return Some(Ok(EvaltuatedValue::Nil)),
-                    LiteralAtom::Bool(b) => {
-                        return Some(Ok(EvaltuatedValue::Bool(b)));
-                    }
-                },
-                Expr::Grouping(expr) => todo!(),
-            },
+            Ok(e) => return self.evaluate_expression(e),
             Err(_) => todo!(),
         }
         todo!()
+    }
+}
+impl<'de> Eval<'de> {
+    fn evaluate_expression(&self, expr: Expr<'de>) -> Option<Result<EvaluatedValue<'de>, String>> {
+        match expr {
+            Expr::Binary {
+                left,
+                operator,
+                right,
+            } => {
+                todo!()
+            }
+            Expr::Unary { operator, right } => todo!(),
+            Expr::Literal(literal_atom) => match literal_atom {
+                LiteralAtom::String(s) => {
+                    return Some(Ok(EvaluatedValue::String(s)));
+                }
+                LiteralAtom::Number(num) => return Some(Ok(EvaluatedValue::Number(num))),
+                LiteralAtom::Nil => return Some(Ok(EvaluatedValue::Nil)),
+                LiteralAtom::Bool(b) => {
+                    return Some(Ok(EvaluatedValue::Bool(b)));
+                }
+            },
+            Expr::Grouping(expr) => self.evaluate_expression(*expr),
+        }
     }
 }
