@@ -25,6 +25,7 @@ macro_rules! set_snapshot_suffix {
 #[case("((false))")]
 #[case("-73")]
 #[case("!true")]
+#[case("!nil")]
 #[case("!10.40")]
 #[case("!((false))")]
 fn test_eval_literals(#[case] input: &str) {

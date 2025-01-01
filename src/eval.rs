@@ -68,7 +68,7 @@ impl<'de> Eval<'de> {
                     Ok(v) => match v {
                         EvaluatedValue::String(_) => Some(Ok(EvaluatedValue::Bool(false))),
                         EvaluatedValue::Number(_) => Some(Ok(EvaluatedValue::Bool(false))),
-                        EvaluatedValue::Nil => Some(Ok(EvaluatedValue::Bool(false))),
+                        EvaluatedValue::Nil => Some(Ok(EvaluatedValue::Bool(true))),
                         EvaluatedValue::Bool(b) => match b {
                             true => Some(Ok(EvaluatedValue::Bool(false))),
                             false => Some(Ok(EvaluatedValue::Bool(true))),
