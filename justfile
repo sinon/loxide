@@ -9,6 +9,6 @@ lint:
         cargo clippy -- -D warnings
         cargo doc
 test:
-    cargo nextest run --all-targets
+    cargo nextest run --all-targets --no-fail-fast
 
 t:test

@@ -61,7 +61,22 @@ impl<'de> Eval<'de> {
                 operator,
                 right,
             } => {
-                todo!()
+                let l_expr = self.evaluate_expression(*left)?;
+                let r_expr = self.evaluate_expression(*right)?;
+                let l_expr = l_expr.expect("just cos");
+                let r_expr = r_expr.expect("just cos 2");
+                match (l_expr, r_expr, operator) {
+                    (EvaluatedValue::Number(n1), EvaluatedValue::Number(n2), op) => {
+                        match op.token_type {
+                            TokenType::Plus => Some(Ok(EvaluatedValue::Number(n1 + n2))),
+                            TokenType::Minus => Some(Ok(EvaluatedValue::Number(n1 - n2))),
+                            TokenType::Star => Some(Ok(EvaluatedValue::Number(n1 * n2))),
+                            TokenType::Slash => Some(Ok(EvaluatedValue::Number(n1 / n2))),
+                            _ => panic!("{} is not a valid token type for Expr::Binary", op),
+                        }
+                    }
+                    (_, _, _) => todo!(),
+                }
             }
             Expr::Unary { operator, right } => match operator.token_type {
                 TokenType::Bang => match self.evaluate_expression(*right)? {
