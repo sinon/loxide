@@ -31,12 +31,19 @@ jobs:
         with:
           toolchain: nightly
           components: llvm-tools-preview
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
       - uses: Swatinem/rust-cache@v2
       - name: cargo test --locked
         run: cargo test --locked --all-features --all-targets
       # https://github.com/rust-lang/cargo/issues/6669
+      - name: cargo nextest
+        run: |
+          cargo nextest run --profile ci --no-fail-fast --all-targets --all-features --workspace
+        continue-on-error: true
       - name: cargo test --doc
-        run: cargo test --locked --all-features --doc
+        run: |
+          cargo test --doc
       - name: cargo install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: cargo llvm-cov
@@ -47,9 +54,9 @@ jobs:
           fail_ci_if_error: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      # - name: Upload test results to Codecov
-      #   uses: codecov/test-results-action@v1.0.1 # v1.0.1
-      #   with:
-      #     fail_ci_if_error: true
-      #     files: reports/results.xml
-      #     token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload test results to Codecov
+        uses: codecov/test-results-action@v1.0.1 # v1.0.1
+        with:
+          fail_ci_if_error: true
+          files: reports/results.xml
+          token: ${{ secrets.CODECOV_TOKEN }}

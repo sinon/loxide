@@ -22,5 +22,5 @@ insta = { version = "1.41.1", features = ["yaml"] }
 insta.opt-level = 3
 similar.opt-level = 3
 
-# [profile.ci.junit]
-# path = "../../../reports/results.xml"
+[profile.ci.junit]
+path = "../../../reports/results.xml"

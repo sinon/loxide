@@ -107,8 +107,7 @@ end//";
 
 #[test]
 fn test_errors() {
-    let out = Lexer::new("#\"//")
-        .collect::<Vec<Result<Token, Error>>>();
+    let out = Lexer::new("#\"//").collect::<Vec<Result<Token, Error>>>();
     assert_eq!(out.len(), 3);
     assert!(out[0].is_err());
     assert!(out[1].is_err());
