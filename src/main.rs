@@ -41,7 +41,6 @@ fn main() -> Result<ExitCode> {
                     }
                 }
             }
-            println!("EOF  null");
             Ok(ExitCode::from(exit_code))
         }
         Commands::Parse { filename } => {
