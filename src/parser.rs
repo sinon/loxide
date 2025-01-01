@@ -45,9 +45,11 @@ pub enum Expr<'de> {
 impl Display for Expr<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            // number literal
             Expr::Literal(Some(num), _, None) => {
                 write!(f, "{:?}", num)
             }
+            // bool literal
             Expr::Literal(None, Some(b), None) => match b {
                 true => {
                     write!(f, "true")
@@ -56,9 +58,11 @@ impl Display for Expr<'_> {
                     write!(f, "false")
                 }
             },
+            // nil literal
             Expr::Literal(None, None, None) => {
                 write!(f, "nil")
             }
+            // string literal
             Expr::Literal(None, None, Some(s)) => write!(f, "{s}"),
             Expr::Unary { operator, right } => {
                 write!(f, "({} {})", operator.origin, right)
@@ -73,7 +77,9 @@ impl Display for Expr<'_> {
             Expr::Grouping(exp) => {
                 write!(f, "(group {})", exp)
             }
-            _ => todo!("{:?}", self),
+            // TODO: Better data types should make these unrepresentible
+            Expr::Literal(None, Some(_), Some(_)) => panic!(),
+            Expr::Literal(Some(_), _, Some(_)) => panic!(),
         }
     }
 }

@@ -168,25 +168,25 @@ impl<'de> Lexer<'de> {
         }
         (has_lex_error, tokens)
     }
-    fn match_reserved_word(&mut self, c_str: &str) -> Option<TokenType> {
+    fn match_reserved_word(&mut self, c_str: &str) -> TokenType {
         match c_str {
-            "and" => Some(TokenType::And),
-            "class" => Some(TokenType::Class),
-            "else" => Some(TokenType::Else),
-            "false" => Some(TokenType::False),
-            "fun" => Some(TokenType::Fun),
-            "for" => Some(TokenType::For),
-            "if" => Some(TokenType::If),
-            "nil" => Some(TokenType::Nil),
-            "or" => Some(TokenType::Or),
-            "print" => Some(TokenType::Print),
-            "return" => Some(TokenType::Return),
-            "super" => Some(TokenType::Super),
-            "this" => Some(TokenType::This),
-            "true" => Some(TokenType::True),
-            "var" => Some(TokenType::Var),
-            "while" => Some(TokenType::While),
-            _ => Some(TokenType::Identifier),
+            "and" => TokenType::And,
+            "class" => TokenType::Class,
+            "else" => TokenType::Else,
+            "false" => TokenType::False,
+            "fun" => TokenType::Fun,
+            "for" => TokenType::For,
+            "if" => TokenType::If,
+            "nil" => TokenType::Nil,
+            "or" => TokenType::Or,
+            "print" => TokenType::Print,
+            "return" => TokenType::Return,
+            "super" => TokenType::Super,
+            "this" => TokenType::This,
+            "true" => TokenType::True,
+            "var" => TokenType::Var,
+            "while" => TokenType::While,
+            _ => TokenType::Identifier,
         }
     }
 }
@@ -352,16 +352,14 @@ impl<'de> Iterator for Lexer<'de> {
                             let next_char = chars.next();
 
                             match next_char {
-                                // TODO: Review this
                                 Some((_, cn)) => {
                                     if cn == ' ' || cn == '\n' {
-                                        if let Some(x) = self.match_reserved_word(c_str) {
-                                            return Some(Ok(Token {
-                                                token_type: x,
-                                                origin: c_str,
-                                                line: self.line_num,
-                                            }));
-                                        }
+                                        let token_type = self.match_reserved_word(c_str);
+                                        return Some(Ok(Token {
+                                            token_type,
+                                            origin: c_str,
+                                            line: self.line_num,
+                                        }));
                                     }
                                     if cn.is_alphanumeric() || cn == '_' {
                                         c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
@@ -369,31 +367,18 @@ impl<'de> Iterator for Lexer<'de> {
                                         self.byte += cn.len_utf8();
                                         continue;
                                     } else {
-                                        if let Some(x) = self.match_reserved_word(c_str) {
-                                            return Some(Ok(Token {
-                                                token_type: x,
-                                                origin: c_str,
-                                                line: self.line_num,
-                                            }));
-                                        }
+                                        let token_type = self.match_reserved_word(c_str);
                                         return Some(Ok(Token {
-                                            token_type: TokenType::Identifier,
+                                            token_type,
                                             origin: c_str,
                                             line: self.line_num,
                                         }));
                                     }
                                 }
                                 None => {
-                                    if let Some(x) = self.match_reserved_word(c_str) {
-                                        return Some(Ok(Token {
-                                            token_type: x,
-                                            origin: c_str,
-                                            line: self.line_num,
-                                        }));
-                                    }
-
+                                    let token_type = self.match_reserved_word(c_str);
                                     return Some(Ok(Token {
-                                        token_type: TokenType::Identifier,
+                                        token_type,
                                         origin: c_str,
                                         line: self.line_num,
                                     }));
