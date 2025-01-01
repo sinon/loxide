@@ -5,7 +5,10 @@
 
 use std::fmt::Display;
 
-use crate::parser::{Expr, LiteralAtom, Parser};
+use crate::{
+    lexer::TokenType,
+    parser::{Expr, LiteralAtom, Parser},
+};
 
 pub enum EvaluatedValue<'de> {
     String(&'de str),
@@ -60,7 +63,33 @@ impl<'de> Eval<'de> {
             } => {
                 todo!()
             }
-            Expr::Unary { operator, right } => todo!(),
+            Expr::Unary { operator, right } => match operator.token_type {
+                TokenType::Bang => match self.evaluate_expression(*right)? {
+                    Ok(v) => match v {
+                        EvaluatedValue::String(_) => Some(Ok(EvaluatedValue::Bool(false))),
+                        EvaluatedValue::Number(_) => Some(Ok(EvaluatedValue::Bool(false))),
+                        EvaluatedValue::Nil => Some(Ok(EvaluatedValue::Bool(false))),
+                        EvaluatedValue::Bool(b) => match b {
+                            true => Some(Ok(EvaluatedValue::Bool(false))),
+                            false => Some(Ok(EvaluatedValue::Bool(true))),
+                        },
+                    },
+                    Err(_) => todo!(),
+                },
+                TokenType::Minus => match self.evaluate_expression(*right)? {
+                    Ok(v) => match v {
+                        EvaluatedValue::String(_) => todo!(),
+                        EvaluatedValue::Number(n) => Some(Ok(EvaluatedValue::Number(-n))),
+                        EvaluatedValue::Nil => todo!(),
+                        EvaluatedValue::Bool(_) => todo!(),
+                    },
+                    Err(_) => todo!(),
+                },
+                // TODO: Make unrepresentable by narrowing `operator` to `UnaryOperator:Not|Negate`
+                _ => {
+                    panic!("{:?} is not a valid unary token type", operator.token_type)
+                }
+            },
             Expr::Literal(literal_atom) => match literal_atom {
                 LiteralAtom::String(s) => {
                     return Some(Ok(EvaluatedValue::String(s)));
