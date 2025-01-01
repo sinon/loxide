@@ -152,22 +152,6 @@ impl<'de> Lexer<'de> {
         }
         ExitCode::from(exit_code)
     }
-    /// Generate tokens
-    pub fn tokens(&mut self) -> (bool, Vec<Token>) {
-        let mut tokens = Vec::<Token>::new();
-        let mut has_lex_error = false;
-        for token in self {
-            match token {
-                Ok(t) => {
-                    tokens.push(t.clone());
-                }
-                Err(_) => {
-                    has_lex_error = true;
-                }
-            }
-        }
-        (has_lex_error, tokens)
-    }
     fn match_reserved_word(&mut self, c_str: &str) -> TokenType {
         match c_str {
             "and" => TokenType::And,
