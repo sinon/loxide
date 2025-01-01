@@ -4,28 +4,41 @@
 //!
 //! Uses a recursive desecent parser. To transform the token stream into
 //! `Expr`
-use std::fmt::Display;
+use std::{fmt::Display, process::ExitCode};
 
-use crate::lexer::{Token, TokenType};
+use crate::lexer::{Lexer, Token, TokenType};
 
+/// `Parser` is responsible for iterating over the token stream from `Lexer`
+/// and converting the lexed `Token` into `Expr` which represent an Abstract Syntax Tree (AST)
 pub struct Parser<'a> {
     tokens: Vec<Token<'a>>,
     current: usize,
     parse_failed: bool,
+    has_lex_error: bool,
 }
 
 #[derive(Debug)]
+/// `Expr` represents a unit of an AST
 pub enum Expr<'de> {
+    /// `Binary` is a binary expression such as `1 * 2`
     Binary {
+        /// The left item `Expr` in an expression
         left: Box<Expr<'de>>,
+        /// The operator to be applied on the `left` and `right` `Expr`
         operator: Token<'de>,
+        /// The right item `Expr` in an expression.
         right: Box<Expr<'de>>,
     },
+    /// `Unary` is a unary expression such as `!true`
     Unary {
+        /// The operator to be applied on the `right` `Expr`
         operator: Token<'de>,
+        /// The expression the unary operator will be applied to
         right: Box<Expr<'de>>,
     },
+    /// `Literal` is a value
     Literal(Option<f64>, Option<bool>, Option<&'de str>),
+    /// `Grouping` holds other `Expr` such as `(1 * 2)`
     Grouping(Box<Expr<'de>>),
 }
 
@@ -86,15 +99,49 @@ impl<'de> Iterator for Parser<'de> {
 }
 
 impl<'de> Parser<'de> {
-    pub fn new(tokens: Vec<Token<'de>>) -> Self {
+    /// Create new `Parser` from a lexed token stream
+    pub fn new(input: &'de str) -> Self {
+        let mut tokens = Vec::<Token>::new();
+        let mut has_lex_error = false;
+        for token in Lexer::new(input) {
+            match token {
+                Ok(t) => {
+                    tokens.push(t);
+                }
+                Err(_) => {
+                    has_lex_error = true;
+                    continue;
+                }
+            }
+        }
         Parser {
             tokens,
             current: 0,
             parse_failed: false,
+            has_lex_error,
         }
     }
+    /// Parse the token stream, returning an `ExitCode` to indicate if the process
+    /// encountered an error when running
+    pub fn parse(&mut self) -> ExitCode {
+        let mut exit_code = 0;
+        if self.has_lex_error {
+            exit_code = 65;
+        }
+        for exp in self {
+            match exp {
+                Ok(ex) => {
+                    println!("{ex}");
+                }
+                Err(_) => {
+                    exit_code = 65;
+                }
+            }
+        }
+        ExitCode::from(exit_code)
+    }
 
-    pub fn expression(&mut self) -> Result<Expr<'de>, String> {
+    fn expression(&mut self) -> Result<Expr<'de>, String> {
         self.equality()
     }
 
@@ -187,40 +234,40 @@ impl<'de> Parser<'de> {
             match token.token_type {
                 TokenType::Number(n) => {
                     self.advance();
-                    return Ok(Expr::Literal(Some(n), None, None));
+                    Ok(Expr::Literal(Some(n), None, None))
                 }
                 TokenType::String => {
                     self.advance();
-                    return Ok(Expr::Literal(None, None, Some(&origin)));
+                    Ok(Expr::Literal(None, None, Some(origin)))
                 }
                 TokenType::True => {
                     self.advance();
-                    return Ok(Expr::Literal(None, Some(true), None));
+                    Ok(Expr::Literal(None, Some(true), None))
                 }
                 TokenType::False => {
                     self.advance();
-                    return Ok(Expr::Literal(None, Some(false), None));
+                    Ok(Expr::Literal(None, Some(false), None))
                 }
                 TokenType::Nil => {
                     self.advance();
-                    return Ok(Expr::Literal(None, None, None));
+                    Ok(Expr::Literal(None, None, None))
                 }
                 TokenType::LeftParen => {
                     self.advance();
                     let expr = self.expression()?;
                     self.consume(
                         TokenType::RightParen,
-                        &origin,
+                        origin,
                         line_num,
                         "Expect ')' after expression",
                     )?;
-                    return Ok(Expr::Grouping(Box::new(expr)));
+                    Ok(Expr::Grouping(Box::new(expr)))
                 }
                 _ => {
                     let err_msg = self
-                        .error_msg(&token.token_type, &origin, line_num, "Expect expression")
+                        .error_msg(&token.token_type, origin, line_num, "Expect expression")
                         .to_string();
-                    return Err(err_msg);
+                    Err(err_msg)
                 }
             }
         } else {
@@ -259,7 +306,7 @@ impl<'de> Parser<'de> {
     }
 
     fn previous(&self) -> &Token<'de> {
-        &self.tokens.get(self.current - 1).unwrap()
+        self.tokens.get(self.current - 1).unwrap()
     }
 
     fn is_at_end(&self) -> bool {
@@ -280,7 +327,7 @@ impl<'de> Parser<'de> {
         if self.check(&token_type) {
             Ok(self.advance())
         } else {
-            Err(self.error_msg(&token_type, &origin, num, message))
+            Err(self.error_msg(&token_type, origin, num, message))
         }
     }
 

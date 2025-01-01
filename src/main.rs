@@ -1,5 +1,5 @@
 use clap::Subcommand;
-use loxide::lexer::{Lexer, Token};
+use loxide::lexer::Lexer;
 use loxide::parser::Parser;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use std::fs;
@@ -22,53 +22,18 @@ enum Commands {
 
 fn main() -> Result<ExitCode> {
     let args = Args::parse();
-    let mut exit_code = 0;
     match args.commands {
         Commands::Tokenize { filename } => {
             let input = fs::read_to_string(filename)
                 .into_diagnostic()
                 .wrap_err_with(|| "reading file".to_string())?;
-            for token in Lexer::new(&input) {
-                match token {
-                    Ok(t) => println!("{t}"),
-                    Err(e) => {
-                        eprintln!("{e}");
-                        exit_code = 65;
-                        continue;
-                    }
-                }
-            }
-            Ok(ExitCode::from(exit_code))
+            Ok(Lexer::new(&input).tokenize_lex())
         }
         Commands::Parse { filename } => {
-            let _input = fs::read_to_string(filename)
+            let input = fs::read_to_string(filename)
                 .into_diagnostic()
                 .wrap_err_with(|| "reading file".to_string())?;
-            let mut tokens = Vec::<Token>::new();
-            for token in Lexer::new(&_input) {
-                match token {
-                    Ok(t) => {
-                        tokens.push(t);
-                    }
-                    Err(_) => {
-                        exit_code = 65;
-                        continue;
-                    }
-                }
-            }
-            let parser = Parser::new(tokens);
-            for exp in parser {
-                match exp {
-                    Ok(e) => {
-                        println!("{e}");
-                    }
-                    Err(_) => {
-                        exit_code = 65;
-                        continue;
-                    }
-                }
-            }
-            Ok(ExitCode::from(exit_code))
+            Ok(Parser::new(&input).parse())
         }
     }
 }
@@ -85,7 +50,7 @@ mod tests {
             .assert()
             .success()
             .code(0)
-            .stdout(format!("loxide 0.1.0\n"))
+            .stdout("loxide 0.1.0\n".to_string())
             .stderr("");
 
         Command::cargo_bin("loxide")
@@ -94,7 +59,7 @@ mod tests {
             .assert()
             .success()
             .code(0)
-            .stdout(format!("loxide 0.1.0\n"))
+            .stdout("loxide 0.1.0\n".to_string())
             .stderr("");
     }
     #[test]

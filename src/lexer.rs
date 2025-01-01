@@ -2,20 +2,23 @@
 //!
 //! Responsible for transforming a given input str into a Iterator of `Result<Token>`
 
-use std::fmt;
+use std::{fmt, process::ExitCode};
 
 use miette::{miette, Error, LabeledSpan, Result};
 
 /// `Token` is formed of a token type (`TokenType`) and a reference to a str in the input string
 #[derive(Clone, Debug)]
 pub struct Token<'de> {
+    /// The `TokenType` of `Token`
     pub token_type: TokenType,
+    /// The text reference from the source code
     pub origin: &'de str,
+    /// The line number where the token was parsed from
     pub line: usize,
 }
 
 /// `TokenType` are the valid tokens types that lox code can be lexed into.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 #[doc(hidden)]
 pub enum TokenType {
     // single-character
@@ -134,6 +137,36 @@ impl<'de> Lexer<'de> {
             line_num: 1,
             at_eof: false,
         }
+    }
+    /// Start lexing on `Lexer` used by `tokenize` command.
+    pub fn tokenize_lex(&mut self) -> ExitCode {
+        let mut exit_code = 0;
+        for t in self {
+            match t {
+                Ok(token) => println!("{token}"),
+                Err(e) => {
+                    eprintln!("{e}");
+                    exit_code = 65;
+                }
+            }
+        }
+        ExitCode::from(exit_code)
+    }
+    /// Generate tokens
+    pub fn tokens(&mut self) -> (bool, Vec<Token>) {
+        let mut tokens = Vec::<Token>::new();
+        let mut has_lex_error = false;
+        for token in self {
+            match token {
+                Ok(t) => {
+                    tokens.push(t.clone());
+                }
+                Err(_) => {
+                    has_lex_error = true;
+                }
+            }
+        }
+        (has_lex_error, tokens)
     }
     fn match_reserved_word(&mut self, c_str: &str) -> Option<TokenType> {
         match c_str {

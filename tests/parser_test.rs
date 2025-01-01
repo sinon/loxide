@@ -1,5 +1,4 @@
 use insta::assert_snapshot;
-use loxide::lexer::{Lexer, Token};
 use loxide::parser::Parser;
 use rstest::*;
 
@@ -19,8 +18,7 @@ macro_rules! set_snapshot_suffix {
 #[case("nil")]
 fn test_parser_literals(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
-    let tokens: Vec<Token> = Lexer::new(input).filter_map(Result::ok).collect();
-    let exprs: Vec<String> = Parser::new(tokens)
+    let exprs: Vec<String> = Parser::new(input)
         .take_while(|x| x.is_ok())
         .map(|e| match e {
             Ok(exp) => format!("{}", exp),
@@ -36,8 +34,7 @@ fn test_parser_literals(#[case] input: &str) {
 #[case("((true))")]
 fn test_parser_parentheses(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
-    let tokens: Vec<Token> = Lexer::new(input).filter_map(Result::ok).collect();
-    let exprs: Vec<String> = Parser::new(tokens)
+    let exprs: Vec<String> = Parser::new(input)
         .take_while(|x| x.is_ok())
         .map(|e| match e {
             Ok(exp) => format!("{}", exp),
@@ -53,8 +50,7 @@ fn test_parser_parentheses(#[case] input: &str) {
 #[case("-10")]
 fn test_parser_unary(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
-    let tokens: Vec<Token> = Lexer::new(input).filter_map(Result::ok).collect();
-    let exprs: Vec<String> = Parser::new(tokens)
+    let exprs: Vec<String> = Parser::new(input)
         .take_while(|x| x.is_ok())
         .map(|e| match e {
             Ok(exp) => format!("{}", exp),
@@ -74,8 +70,7 @@ fn test_parser_unary(#[case] input: &str) {
 #[case("52 + 80 - 94")]
 fn test_parser_arimethic(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
-    let tokens: Vec<Token> = Lexer::new(input).filter_map(Result::ok).collect();
-    let exprs: Vec<String> = Parser::new(tokens)
+    let exprs: Vec<String> = Parser::new(input)
         .take_while(|x| x.is_ok())
         .map(|e| match e {
             Ok(exp) => format!("{}", exp),
@@ -90,8 +85,7 @@ fn test_parser_arimethic(#[case] input: &str) {
 #[case("52 <= 80 >= 94")]
 fn test_parser_comparison(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
-    let tokens: Vec<Token> = Lexer::new(input).filter_map(Result::ok).collect();
-    let exprs: Vec<String> = Parser::new(tokens)
+    let exprs: Vec<String> = Parser::new(input)
         .take_while(|x| x.is_ok())
         .map(|e| match e {
             Ok(exp) => format!("{}", exp),
@@ -112,8 +106,7 @@ fn test_parser_comparison(#[case] input: &str) {
 #[case("10 != 9")]
 fn test_parser_equality(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
-    let tokens: Vec<Token> = Lexer::new(input).filter_map(Result::ok).collect();
-    let exprs: Vec<String> = Parser::new(tokens)
+    let exprs: Vec<String> = Parser::new(input)
         .take_while(|x| x.is_ok())
         .map(|e| match e {
             Ok(exp) => format!("{}", exp),
@@ -128,8 +121,7 @@ fn test_parser_equality(#[case] input: &str) {
 #[case("\"foo")]
 fn test_parser_error(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
-    let tokens: Vec<Token> = Lexer::new(&input).filter_map(Result::ok).collect();
-    for expr in Parser::new(tokens) {
+    for expr in Parser::new(input) {
         match expr {
             Ok(_) => todo!(),
             Err(err) => {
