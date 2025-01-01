@@ -10,8 +10,8 @@ use crate::lexer::{Lexer, Token, TokenType};
 
 /// `Parser` is responsible for iterating over the token stream from `Lexer`
 /// and converting the lexed `Token` into `Expr` which represent an Abstract Syntax Tree (AST)
-pub struct Parser<'a> {
-    tokens: Vec<Token<'a>>,
+pub struct Parser<'de> {
+    tokens: Vec<Token<'de>>,
     current: usize,
     parse_failed: bool,
     has_lex_error: bool,

@@ -1,4 +1,5 @@
 use clap::Subcommand;
+use loxide::eval::Eval;
 use loxide::lexer::Lexer;
 use loxide::parser::Parser;
 use miette::{IntoDiagnostic, Result, WrapErr};
@@ -18,6 +19,7 @@ struct Args {
 enum Commands {
     Tokenize { filename: PathBuf },
     Parse { filename: PathBuf },
+    Evaluate { filename: PathBuf },
 }
 
 fn main() -> Result<ExitCode> {
@@ -34,6 +36,18 @@ fn main() -> Result<ExitCode> {
                 .into_diagnostic()
                 .wrap_err_with(|| "reading file".to_string())?;
             Ok(Parser::new(&input).parse())
+        }
+        Commands::Evaluate { filename } => {
+            let input = fs::read_to_string(filename)
+                .into_diagnostic()
+                .wrap_err_with(|| "reading file".to_string())?;
+            for res in Eval::new(&input) {
+                match res {
+                    Ok(r) => println!("{}", r),
+                    Err(_) => todo!(),
+                }
+            }
+            Ok(ExitCode::from(0))
         }
     }
 }

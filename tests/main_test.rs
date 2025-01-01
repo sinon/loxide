@@ -93,3 +93,38 @@ fn test_parse_with_file_error() {
         .stderr("[line 1] Error at \')\': Expect expression.\n")
         .stdout("");
 }
+
+#[test]
+fn test_evaluate_no_file() {
+    Command::cargo_bin("loxide")
+        .unwrap()
+        .arg("evaluate")
+        .arg("text.lox")
+        .assert()
+        .failure()
+        .code(1);
+}
+
+#[test]
+fn test_evaluate_with_file() {
+    Command::cargo_bin("loxide")
+        .unwrap()
+        .arg("evaluate")
+        .arg("tests/fixtures/evaluate.lox")
+        .assert()
+        .success()
+        .code(0)
+        .stdout("false\ntrue\nnil\n");
+}
+
+#[test]
+fn test_evaluate_with_file_error() {
+    Command::cargo_bin("loxide")
+        .unwrap()
+        .arg("evaluate")
+        .arg("tests/fixtures/evaluate_error.lox")
+        .assert()
+        .failure()
+        .code(101)
+        .stdout("");
+}
