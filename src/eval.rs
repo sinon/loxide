@@ -17,8 +17,8 @@ pub enum EvaltuatedValue<'de> {
 impl Display for EvaltuatedValue<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            EvaltuatedValue::String(_) => todo!(),
-            EvaltuatedValue::Number(_) => todo!(),
+            EvaltuatedValue::String(s) => write!(f, "{s}"),
+            EvaltuatedValue::Number(n) => write!(f, "{n}"),
             EvaltuatedValue::Nil => write!(f, "nil"),
             EvaltuatedValue::Bool(b) => write!(f, "{b:}"),
         }
@@ -52,8 +52,10 @@ impl<'de> Iterator for Eval<'de> {
                 } => {}
                 Expr::Unary { operator, right } => todo!(),
                 Expr::Literal(literal_atom) => match literal_atom {
-                    LiteralAtom::String(_) => todo!(),
-                    LiteralAtom::Number(_) => todo!(),
+                    LiteralAtom::String(s) => {
+                        return Some(Ok(EvaltuatedValue::String(s)));
+                    }
+                    LiteralAtom::Number(num) => return Some(Ok(EvaltuatedValue::Number(num))),
                     LiteralAtom::Nil => return Some(Ok(EvaltuatedValue::Nil)),
                     LiteralAtom::Bool(b) => {
                         return Some(Ok(EvaltuatedValue::Bool(b)));

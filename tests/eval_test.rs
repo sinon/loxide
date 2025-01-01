@@ -16,6 +16,10 @@ macro_rules! set_snapshot_suffix {
 #[case("true")]
 #[case("false")]
 #[case("nil")]
+#[case("\"hello world\"")]
+#[case("10.4")]
+#[case("10")]
+#[case("10.0")]
 fn test_eval_literals(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let exprs: Vec<String> = Eval::new(input)
