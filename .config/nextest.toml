@@ -1,0 +1,2 @@
+[profile.ci.junit]
+path = "../../../reports/results.xml"
