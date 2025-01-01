@@ -1,0 +1,5 @@
+---
+source: tests/lexer_test.rs
+expression: out
+---
+EOF  null

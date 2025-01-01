@@ -138,3 +138,13 @@ fn test_group_literal() {
         out, "LEFT_PAREN ( null\nLEFT_PAREN ( null\nTRUE true null\nRIGHT_PAREN ) null\nRIGHT_PAREN ) null\nEOF  null"
     );
 }
+
+#[test]
+fn test_empty_handling() {
+    let out: String = Lexer::new("")
+        .into_iter()
+        .filter_map(Result::ok)
+        .map(|x| format!("{x}"))
+        .collect();
+    assert_yaml_snapshot!(out);
+}

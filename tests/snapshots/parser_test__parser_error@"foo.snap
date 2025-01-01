@@ -2,4 +2,4 @@
 source: tests/parser_test.rs
 description: "\"foo"
 ---
-error
+[line 1] Error at end: Expect expression.

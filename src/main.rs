@@ -28,16 +28,13 @@ fn main() -> Result<ExitCode> {
             let input = fs::read_to_string(filename)
                 .into_diagnostic()
                 .wrap_err_with(|| "reading file".to_string())?;
-            if !input.is_empty() {
-                let lexer = Lexer::new(&input);
-                for token in lexer {
-                    match token {
-                        Ok(t) => println!("{t}"),
-                        Err(e) => {
-                            eprintln!("{e}");
-                            exit_code = 65;
-                            continue;
-                        }
+            for token in Lexer::new(&input) {
+                match token {
+                    Ok(t) => println!("{t}"),
+                    Err(e) => {
+                        eprintln!("{e}");
+                        exit_code = 65;
+                        continue;
                     }
                 }
             }
