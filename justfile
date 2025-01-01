@@ -10,3 +10,5 @@ lint:
         cargo doc
 test:
     cargo nextest run
+
+t:test
