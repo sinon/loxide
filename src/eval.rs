@@ -10,14 +10,14 @@ use crate::{
     parser::{Expr, LiteralAtom, Parser},
 };
 
-pub enum EvaluatedValue<'de> {
-    String(&'de str),
+pub enum EvaluatedValue {
+    String(String),
     Number(f64),
     Nil,
     Bool(bool),
 }
 
-impl Display for EvaluatedValue<'_> {
+impl Display for EvaluatedValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             EvaluatedValue::String(s) => write!(f, "{s}"),
@@ -41,7 +41,7 @@ impl<'de> Eval<'de> {
 }
 
 impl<'de> Iterator for Eval<'de> {
-    type Item = Result<EvaluatedValue<'de>, String>;
+    type Item = Result<EvaluatedValue, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let expr = self.parser.next()?;
@@ -54,7 +54,7 @@ impl<'de> Iterator for Eval<'de> {
     }
 }
 impl<'de> Eval<'de> {
-    fn evaluate_expression(&self, expr: Expr<'de>) -> Option<Result<EvaluatedValue<'de>, String>> {
+    fn evaluate_expression(&self, expr: Expr<'de>) -> Option<Result<EvaluatedValue, String>> {
         match expr {
             Expr::Binary {
                 left,
@@ -73,10 +73,26 @@ impl<'de> Eval<'de> {
                             TokenType::Star => Some(Ok(EvaluatedValue::Number(n1 * n2))),
                             TokenType::Slash => Some(Ok(EvaluatedValue::Number(n1 / n2))),
                             // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
-                            _ => panic!("{} is not a valid token type for Expr::Binary", op),
+                            _ => panic!(
+                                "{} is not a valid token type for Expr::Binary with Numbers",
+                                op
+                            ),
                         }
                     }
-                    (_, _, _) => todo!(),
+                    (EvaluatedValue::String(s1), EvaluatedValue::String(s2), operator) => {
+                        match operator.token_type {
+                            TokenType::Plus => {
+                                // let s3 = &((s1.to_owned() + s2).clone());
+                                Some(Ok(EvaluatedValue::String(s1.to_owned() + &s2)))
+                            }
+                            // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
+                            _ => panic!(
+                                "{} is not a valid token type for Expr:Binary with Strings",
+                                operator
+                            ),
+                        }
+                    }
+                    (l, r, op) => todo!("Add handling for {l} {r} {op}"),
                 }
             }
             Expr::Unary { operator, right } => match operator.token_type {
@@ -108,7 +124,7 @@ impl<'de> Eval<'de> {
             },
             Expr::Literal(literal_atom) => match literal_atom {
                 LiteralAtom::String(s) => {
-                    return Some(Ok(EvaluatedValue::String(s)));
+                    return Some(Ok(EvaluatedValue::String(s.to_string())));
                 }
                 LiteralAtom::Number(num) => return Some(Ok(EvaluatedValue::Number(num))),
                 LiteralAtom::Nil => return Some(Ok(EvaluatedValue::Nil)),

@@ -32,6 +32,8 @@ macro_rules! set_snapshot_suffix {
 #[case("18 * 3 / (3 * 6)")]
 #[case("(10.40 * 2) / 2")]
 #[case("23 + 28 - (-(61 - 99))")]
+#[case("\"foo\" + \"bar\"")]
+#[case("\"42\" + \"24\"")]
 fn test_eval_literals(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let exprs: Vec<String> = Eval::new(input)
