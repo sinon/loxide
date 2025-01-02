@@ -1,4 +1,4 @@
-use insta::assert_snapshot;
+use insta::{assert_debug_snapshot, assert_snapshot};
 use loxide::eval::Eval;
 use rstest::*;
 
@@ -53,4 +53,19 @@ fn test_eval_literals(#[case] input: &str) {
         })
         .collect();
     assert_snapshot!(exprs.join("\n"));
+}
+
+#[rstest]
+#[case("-\"hello world!\"")]
+#[case("-true")]
+fn test_eval_errors(#[case] input: &str) {
+    set_snapshot_suffix!("{}", input);
+    let mut errors = Vec::new();
+    for e in Eval::new(input) {
+        match e {
+            Ok(_) => {}
+            Err(e) => errors.push(e),
+        }
+    }
+    assert_debug_snapshot!(errors);
 }

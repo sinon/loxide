@@ -125,5 +125,9 @@ fn test_evaluate_with_file_error() {
         .arg("tests/fixtures/evaluate_error.lox")
         .assert()
         .failure()
-        .code(101);
+        .code(70)
+        .stderr(
+            "Operand must be a number.
+[line 1]\n",
+        );
 }

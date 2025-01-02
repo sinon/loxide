@@ -47,14 +47,14 @@ impl<'de> Iterator for Eval<'de> {
         let expr = self.parser.next()?;
 
         match expr {
-            Ok(e) => return self.evaluate_expression(e),
+            Ok(e) => return Some(self.evaluate_expression(e)),
             Err(_) => todo!(),
         }
         todo!()
     }
 }
 impl<'de> Eval<'de> {
-    fn evaluate_expression(&self, expr: Expr<'de>) -> Option<Result<EvaluatedValue, String>> {
+    fn evaluate_expression(&self, expr: Expr<'de>) -> Result<EvaluatedValue, String> {
         match expr {
             Expr::Binary {
                 left,
@@ -63,21 +63,19 @@ impl<'de> Eval<'de> {
             } => {
                 let l_expr = self.evaluate_expression(*left)?;
                 let r_expr = self.evaluate_expression(*right)?;
-                let l_expr = l_expr.expect("just cos");
-                let r_expr = r_expr.expect("just cos 2");
                 match (l_expr, r_expr, operator) {
                     (EvaluatedValue::Number(n1), EvaluatedValue::Number(n2), op) => {
                         match op.token_type {
-                            TokenType::Plus => Some(Ok(EvaluatedValue::Number(n1 + n2))),
-                            TokenType::Minus => Some(Ok(EvaluatedValue::Number(n1 - n2))),
-                            TokenType::Star => Some(Ok(EvaluatedValue::Number(n1 * n2))),
-                            TokenType::Slash => Some(Ok(EvaluatedValue::Number(n1 / n2))),
-                            TokenType::Greater => Some(Ok(EvaluatedValue::Bool(n1 > n2))),
-                            TokenType::GreaterEqual => Some(Ok(EvaluatedValue::Bool(n1 >= n2))),
-                            TokenType::Less => Some(Ok(EvaluatedValue::Bool(n1 < n2))),
-                            TokenType::LessEqual => Some(Ok(EvaluatedValue::Bool(n1 <= n2))),
-                            TokenType::EqualEqual => Some(Ok(EvaluatedValue::Bool(n1 == n2))),
-                            TokenType::BangEqual => Some(Ok(EvaluatedValue::Bool(n1 != n2))),
+                            TokenType::Plus => Ok(EvaluatedValue::Number(n1 + n2)),
+                            TokenType::Minus => Ok(EvaluatedValue::Number(n1 - n2)),
+                            TokenType::Star => Ok(EvaluatedValue::Number(n1 * n2)),
+                            TokenType::Slash => Ok(EvaluatedValue::Number(n1 / n2)),
+                            TokenType::Greater => Ok(EvaluatedValue::Bool(n1 > n2)),
+                            TokenType::GreaterEqual => Ok(EvaluatedValue::Bool(n1 >= n2)),
+                            TokenType::Less => Ok(EvaluatedValue::Bool(n1 < n2)),
+                            TokenType::LessEqual => Ok(EvaluatedValue::Bool(n1 <= n2)),
+                            TokenType::EqualEqual => Ok(EvaluatedValue::Bool(n1 == n2)),
+                            TokenType::BangEqual => Ok(EvaluatedValue::Bool(n1 != n2)),
                             // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
                             _ => panic!(
                                 "{} is not a valid token type for Expr::Binary with Numbers",
@@ -89,10 +87,10 @@ impl<'de> Eval<'de> {
                         match operator.token_type {
                             TokenType::Plus => {
                                 // let s3 = &((s1.to_owned() + s2).clone());
-                                Some(Ok(EvaluatedValue::String(s1.to_owned() + &s2)))
+                                Ok(EvaluatedValue::String(s1.to_owned() + &s2))
                             }
-                            TokenType::EqualEqual => Some(Ok(EvaluatedValue::Bool(s1 == s2))),
-                            TokenType::BangEqual => Some(Ok(EvaluatedValue::Bool(s1 != s2))),
+                            TokenType::EqualEqual => Ok(EvaluatedValue::Bool(s1 == s2)),
+                            TokenType::BangEqual => Ok(EvaluatedValue::Bool(s1 != s2)),
                             // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
                             _ => panic!(
                                 "{} is not a valid token type for Expr:Binary with Strings",
@@ -103,49 +101,63 @@ impl<'de> Eval<'de> {
                     (EvaluatedValue::String(_), EvaluatedValue::Number(_), operator)
                     | (EvaluatedValue::Number(_), EvaluatedValue::String(_), operator) => {
                         match operator.token_type {
-                            TokenType::EqualEqual => Some(Ok(EvaluatedValue::Bool(false))),
-                            TokenType::BangEqual => Some(Ok(EvaluatedValue::Bool(true))),
+                            TokenType::EqualEqual => Ok(EvaluatedValue::Bool(false)),
+                            TokenType::BangEqual => Ok(EvaluatedValue::Bool(true)),
                             _ => panic!("{} is not supported for String<>Number", operator),
                         }
                     }
                     (l, r, op) => todo!("Add handling for {l} {r} {op}"),
                 }
             }
-            Expr::Unary { operator, right } => match operator.token_type {
-                TokenType::Bang => match self.evaluate_expression(*right)? {
-                    Ok(v) => match v {
-                        EvaluatedValue::String(_) => Some(Ok(EvaluatedValue::Bool(false))),
-                        EvaluatedValue::Number(_) => Some(Ok(EvaluatedValue::Bool(false))),
-                        EvaluatedValue::Nil => Some(Ok(EvaluatedValue::Bool(true))),
-                        EvaluatedValue::Bool(b) => match b {
-                            true => Some(Ok(EvaluatedValue::Bool(false))),
-                            false => Some(Ok(EvaluatedValue::Bool(true))),
-                        },
+            Expr::Unary { operator, right } => {
+                let r = *right;
+                match (operator.token_type, &r) {
+                    (TokenType::Minus, Expr::Literal(literal_atom)) => match literal_atom {
+                        LiteralAtom::Number(_) => {}
+                        _ => {
+                            eprintln!("Operand must be a number.");
+                            eprintln!("[line {}]", operator.line);
+                            return Err("Operand must be a number".to_string());
+                        }
                     },
-                    Err(_) => todo!(),
-                },
-                TokenType::Minus => match self.evaluate_expression(*right)? {
-                    Ok(v) => match v {
-                        EvaluatedValue::String(_) => todo!(),
-                        EvaluatedValue::Number(n) => Some(Ok(EvaluatedValue::Number(-n))),
-                        EvaluatedValue::Nil => todo!(),
-                        EvaluatedValue::Bool(_) => todo!(),
-                    },
-                    Err(_) => todo!(),
-                },
-                // TODO: Make unrepresentable by narrowing `operator` to `UnaryOperator:Not|Negate`
-                _ => {
-                    panic!("{:?} is not a valid unary token type", operator.token_type)
+                    _ => {}
                 }
-            },
+                match operator.token_type {
+                    TokenType::Bang => match self.evaluate_expression(r) {
+                        Ok(v) => match v {
+                            EvaluatedValue::String(_) => Ok(EvaluatedValue::Bool(false)),
+                            EvaluatedValue::Number(_) => Ok(EvaluatedValue::Bool(false)),
+                            EvaluatedValue::Nil => Ok(EvaluatedValue::Bool(true)),
+                            EvaluatedValue::Bool(b) => match b {
+                                true => Ok(EvaluatedValue::Bool(false)),
+                                false => Ok(EvaluatedValue::Bool(true)),
+                            },
+                        },
+                        Err(_) => todo!(),
+                    },
+                    TokenType::Minus => match self.evaluate_expression(r) {
+                        Ok(v) => match v {
+                            EvaluatedValue::String(_) => todo!(),
+                            EvaluatedValue::Number(n) => Ok(EvaluatedValue::Number(-n)),
+                            EvaluatedValue::Nil => todo!(),
+                            EvaluatedValue::Bool(_) => todo!(),
+                        },
+                        Err(_) => todo!(),
+                    },
+                    // TODO: Make unrepresentable by narrowing `operator` to `UnaryOperator:Not|Negate`
+                    _ => {
+                        panic!("{:?} is not a valid unary token type", operator.token_type)
+                    }
+                }
+            }
             Expr::Literal(literal_atom) => match literal_atom {
                 LiteralAtom::String(s) => {
-                    return Some(Ok(EvaluatedValue::String(s.to_string())));
+                    return Ok(EvaluatedValue::String(s.to_string()));
                 }
-                LiteralAtom::Number(num) => return Some(Ok(EvaluatedValue::Number(num))),
-                LiteralAtom::Nil => return Some(Ok(EvaluatedValue::Nil)),
+                LiteralAtom::Number(num) => return Ok(EvaluatedValue::Number(num)),
+                LiteralAtom::Nil => return Ok(EvaluatedValue::Nil),
                 LiteralAtom::Bool(b) => {
-                    return Some(Ok(EvaluatedValue::Bool(b)));
+                    return Ok(EvaluatedValue::Bool(b));
                 }
             },
             Expr::Grouping(expr) => self.evaluate_expression(*expr),
