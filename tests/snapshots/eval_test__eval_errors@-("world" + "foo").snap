@@ -1,8 +1,6 @@
 ---
 source: tests/eval_test.rs
-assertion_line: 71
 description: "-(\"world\" + \"foo\")"
-snapshot_kind: text
 ---
 [
     "Operand must be a number",
