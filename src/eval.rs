@@ -110,10 +110,10 @@ impl<'de> Eval<'de> {
                 }
             }
             Expr::Unary { operator, right } => {
-                let r = *right;
+                let r = self.evaluate_expression(*right);
                 match (operator.token_type, &r) {
-                    (TokenType::Minus, Expr::Literal(literal_atom)) => match literal_atom {
-                        LiteralAtom::Number(_) => {}
+                    (TokenType::Minus, Ok(e)) => match e {
+                        EvaluatedValue::Number(_) => {}
                         _ => {
                             eprintln!("Operand must be a number.");
                             eprintln!("[line {}]", operator.line);
@@ -123,7 +123,7 @@ impl<'de> Eval<'de> {
                     _ => {}
                 }
                 match operator.token_type {
-                    TokenType::Bang => match self.evaluate_expression(r) {
+                    TokenType::Bang => match &r {
                         Ok(v) => match v {
                             EvaluatedValue::String(_) => Ok(EvaluatedValue::Bool(false)),
                             EvaluatedValue::Number(_) => Ok(EvaluatedValue::Bool(false)),
@@ -135,7 +135,7 @@ impl<'de> Eval<'de> {
                         },
                         Err(_) => todo!(),
                     },
-                    TokenType::Minus => match self.evaluate_expression(r) {
+                    TokenType::Minus => match &r {
                         Ok(v) => match v {
                             EvaluatedValue::String(_) => todo!(),
                             EvaluatedValue::Number(n) => Ok(EvaluatedValue::Number(-n)),
