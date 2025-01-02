@@ -72,6 +72,10 @@ impl<'de> Eval<'de> {
                             TokenType::Minus => Some(Ok(EvaluatedValue::Number(n1 - n2))),
                             TokenType::Star => Some(Ok(EvaluatedValue::Number(n1 * n2))),
                             TokenType::Slash => Some(Ok(EvaluatedValue::Number(n1 / n2))),
+                            TokenType::Greater => Some(Ok(EvaluatedValue::Bool(n1 > n2))),
+                            TokenType::GreaterEqual => Some(Ok(EvaluatedValue::Bool(n1 >= n2))),
+                            TokenType::Less => Some(Ok(EvaluatedValue::Bool(n1 < n2))),
+                            TokenType::LessEqual => Some(Ok(EvaluatedValue::Bool(n1 <= n2))),
                             // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
                             _ => panic!(
                                 "{} is not a valid token type for Expr::Binary with Numbers",
