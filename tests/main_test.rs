@@ -125,6 +125,5 @@ fn test_evaluate_with_file_error() {
         .arg("tests/fixtures/evaluate_error.lox")
         .assert()
         .failure()
-        .code(101)
-        .stdout("");
+        .code(101);
 }

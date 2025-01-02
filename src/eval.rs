@@ -76,6 +76,8 @@ impl<'de> Eval<'de> {
                             TokenType::GreaterEqual => Some(Ok(EvaluatedValue::Bool(n1 >= n2))),
                             TokenType::Less => Some(Ok(EvaluatedValue::Bool(n1 < n2))),
                             TokenType::LessEqual => Some(Ok(EvaluatedValue::Bool(n1 <= n2))),
+                            TokenType::EqualEqual => Some(Ok(EvaluatedValue::Bool(n1 == n2))),
+                            TokenType::BangEqual => Some(Ok(EvaluatedValue::Bool(n1 != n2))),
                             // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
                             _ => panic!(
                                 "{} is not a valid token type for Expr::Binary with Numbers",
@@ -89,11 +91,21 @@ impl<'de> Eval<'de> {
                                 // let s3 = &((s1.to_owned() + s2).clone());
                                 Some(Ok(EvaluatedValue::String(s1.to_owned() + &s2)))
                             }
+                            TokenType::EqualEqual => Some(Ok(EvaluatedValue::Bool(s1 == s2))),
+                            TokenType::BangEqual => Some(Ok(EvaluatedValue::Bool(s1 != s2))),
                             // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
                             _ => panic!(
                                 "{} is not a valid token type for Expr:Binary with Strings",
                                 operator
                             ),
+                        }
+                    }
+                    (EvaluatedValue::String(_), EvaluatedValue::Number(_), operator)
+                    | (EvaluatedValue::Number(_), EvaluatedValue::String(_), operator) => {
+                        match operator.token_type {
+                            TokenType::EqualEqual => Some(Ok(EvaluatedValue::Bool(false))),
+                            TokenType::BangEqual => Some(Ok(EvaluatedValue::Bool(true))),
+                            _ => panic!("{} is not supported for String<>Number", operator),
                         }
                     }
                     (l, r, op) => todo!("Add handling for {l} {r} {op}"),

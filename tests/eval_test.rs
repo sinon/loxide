@@ -37,6 +37,12 @@ macro_rules! set_snapshot_suffix {
 #[case("57 > -65")]
 #[case("11 >= 11")]
 #[case("(54 - 67) >= -(114 / 57 + 11)")]
+#[case("\"hello\" == \"world\"")]
+#[case("\"foo\" != \"bar\"")]
+#[case("\"foo\" == \"foo\"")]
+#[case("61 == \"61\"")]
+#[case("61 != \"61\"")]
+#[case("\"61\" != 61")]
 fn test_eval_literals(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let exprs: Vec<String> = Eval::new(input)
