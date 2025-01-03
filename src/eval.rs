@@ -69,6 +69,18 @@ fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
         } => {
             let l_expr = evaluate_expression(*left)?;
             let r_expr = evaluate_expression(*right)?;
+            match operator.token_type {
+                TokenType::Minus | TokenType::Star | TokenType::Slash => match (&l_expr, &r_expr) {
+                    (EvaluatedValue::Number(_), EvaluatedValue::Number(_)) => {}
+                    _ => {
+                        eprintln!("Operand must be a number.");
+                        eprintln!("[line {}]", operator.line);
+                        return Err("Operand must be a number".to_string());
+                    }
+                },
+                _ => {}
+            }
+
             match (l_expr, r_expr, operator) {
                 (EvaluatedValue::Number(n1), EvaluatedValue::Number(n2), op) => {
                     match op.token_type {
