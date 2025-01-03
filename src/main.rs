@@ -59,7 +59,7 @@ fn main() -> Result<ExitCode> {
             for res in Eval::new(&input) {
                 match res {
                     Ok(r) => {}
-                    Err(_) => exit_code = 70,
+                    Err(_) => exit_code = 65,
                 }
             }
             Ok(ExitCode::from(exit_code))

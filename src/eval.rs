@@ -56,7 +56,7 @@ impl Iterator for Eval<'_> {
         let stmt = self.parser.next()?;
         match stmt {
             Ok(s) => Some(evaluate_statement(s)),
-            Err(_) => None,
+            Err(e) => Some(Err(e)),
         }
     }
 }
