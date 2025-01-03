@@ -1,65 +1,54 @@
-//! Eval module
+//! Run module
 //!
-//! Responsible for evlauting the AST and returning the computed values
+//! Responsible for running the AST and returning the computed values
 //!
-
-use std::fmt::Display;
 
 use crate::{
+    eval::EvaluatedValue,
     lexer::TokenType,
-    parser::{EvalParser, Expr, LiteralAtom},
+    parser::{Expr, LiteralAtom, Parser, Stmt},
 };
 
-/// The value that an expression has evaluated too, this can be a literal.
-pub enum EvaluatedValue {
-    /// String value `"hello"`
-    String(String),
-    /// Number value. Note Lox only supports double precision floating point
-    Number(f64),
-    /// nil, the unset/null value
-    Nil,
-    /// Boolean value `true`/`false`
-    Bool(bool),
-}
-
-impl Display for EvaluatedValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EvaluatedValue::String(s) => write!(f, "{s}"),
-            EvaluatedValue::Number(n) => write!(f, "{n}"),
-            EvaluatedValue::Nil => write!(f, "nil"),
-            EvaluatedValue::Bool(b) => write!(f, "{b:}"),
-        }
-    }
-}
-
-/// `Eval`
+/// `Run`
 /// an iterator that consumes expressions from the parser and tries to evaluate them.
-pub struct Eval<'de> {
-    parser: EvalParser<'de>,
+pub struct Run<'de> {
+    parser: Parser<'de>,
 }
 
-impl<'de> Eval<'de> {
-    /// Create a new `Eval` to process a given input source code
+impl<'de> Run<'de> {
+    /// Create a new `Run` to process a given input source code
     pub fn new(input: &'de str) -> Self {
-        Eval {
-            parser: EvalParser::new(input),
+        Run {
+            parser: Parser::new(input),
         }
     }
 }
 
-impl Iterator for Eval<'_> {
-    type Item = Result<EvaluatedValue, String>;
+impl Iterator for Run<'_> {
+    type Item = Result<(), String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let expr = self.parser.next()?;
-
-        match expr {
-            Ok(e) => Some(evaluate_expression(e)),
-            Err(_) => todo!(),
+        let stmt = self.parser.next()?;
+        match stmt {
+            Ok(s) => Some(evaluate_statement(s)),
+            Err(e) => Some(Err(e)),
         }
     }
 }
+
+fn evaluate_statement(stmt: Stmt) -> Result<(), String> {
+    match stmt {
+        Stmt::Print(expr) => {
+            let val = evaluate_expression(expr)?;
+            println!("{}", val);
+        }
+        Stmt::ExpressionStatement(expr) => {
+            let val = evaluate_expression(expr);
+        }
+    }
+    Ok(())
+}
+
 fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
     match expr {
         Expr::Binary {
@@ -70,8 +59,23 @@ fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
             let l_expr = evaluate_expression(*left)?;
             let r_expr = evaluate_expression(*right)?;
             match operator.token_type {
-                TokenType::Minus | TokenType::Star | TokenType::Slash => match (&l_expr, &r_expr) {
+                TokenType::Minus
+                | TokenType::Star
+                | TokenType::Slash
+                | TokenType::Greater
+                | TokenType::GreaterEqual
+                | TokenType::Less
+                | TokenType::LessEqual => match (&l_expr, &r_expr) {
                     (EvaluatedValue::Number(_), EvaluatedValue::Number(_)) => {}
+                    _ => {
+                        eprintln!("Operand must be a number.");
+                        eprintln!("[line {}]", operator.line);
+                        return Err("Operand must be a number".to_string());
+                    }
+                },
+                TokenType::Plus => match (&l_expr, &r_expr) {
+                    (EvaluatedValue::Number(_), EvaluatedValue::Number(_))
+                    | (EvaluatedValue::String(_), EvaluatedValue::String(_)) => {}
                     _ => {
                         eprintln!("Operand must be a number.");
                         eprintln!("[line {}]", operator.line);

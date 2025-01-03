@@ -108,6 +108,51 @@ impl<'de> Iterator for Parser<'de> {
     }
 }
 
+pub struct EvalParser<'de>(Parser<'de>);
+impl<'de> Iterator for EvalParser<'de> {
+    type Item = Result<Expr<'de>, String>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.0.is_at_end() || self.0.parse_failed {
+            return None;
+        }
+
+        let expr = self.0.expression();
+        match expr {
+            Ok(e) => Some(Ok(e)),
+            Err(err) => {
+                eprintln!("{}", err);
+                self.0.parse_failed = true;
+                Some(Err(err))
+            }
+        }
+    }
+}
+
+impl<'de> EvalParser<'de> {
+    pub fn new(input: &'de str) -> Self {
+        let mut tokens = Vec::<Token>::new();
+        let mut has_lex_error = false;
+        for token in Lexer::new(input) {
+            match token {
+                Ok(t) => {
+                    tokens.push(t);
+                }
+                Err(_) => {
+                    has_lex_error = true;
+                    continue;
+                }
+            }
+        }
+        EvalParser(Parser {
+            tokens,
+            current: 0,
+            parse_failed: false,
+            has_lex_error,
+        })
+    }
+}
+
 impl<'de> Parser<'de> {
     /// Create new `Parser` from a lexed token stream
     pub fn new(input: &'de str) -> Self {

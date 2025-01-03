@@ -2,6 +2,7 @@ use clap::Subcommand;
 use loxide::eval::Eval;
 use loxide::lexer::Lexer;
 use loxide::parser::Parser;
+use loxide::run::Run;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use std::fs;
 use std::path::PathBuf;
@@ -19,7 +20,7 @@ struct Args {
 enum Commands {
     Tokenize { filename: PathBuf },
     Parse { filename: PathBuf },
-    // Evaluate { filename: PathBuf },
+    Evaluate { filename: PathBuf },
     Run { filename: PathBuf },
 }
 
@@ -38,25 +39,25 @@ fn main() -> Result<ExitCode> {
                 .wrap_err_with(|| "reading file".to_string())?;
             Ok(Parser::new(&input).parse())
         }
-        // Commands::Evaluate { filename } => {
-        //     let input = fs::read_to_string(filename)
-        //         .into_diagnostic()
-        //         .wrap_err_with(|| "reading file".to_string())?;
-        //     let mut exit_code = 0;
-        //     for res in Eval::new(&input) {
-        //         match res {
-        //             Ok(r) => println!("{}", r),
-        //             Err(_) => exit_code = 70,
-        //         }
-        //     }
-        //     Ok(ExitCode::from(exit_code))
-        // }
-        Commands::Run { filename } => {
+        Commands::Evaluate { filename } => {
             let input = fs::read_to_string(filename)
                 .into_diagnostic()
                 .wrap_err_with(|| "reading file".to_string())?;
             let mut exit_code = 0;
             for res in Eval::new(&input) {
+                match res {
+                    Ok(r) => println!("{}", r),
+                    Err(_) => exit_code = 70,
+                }
+            }
+            Ok(ExitCode::from(exit_code))
+        }
+        Commands::Run { filename } => {
+            let input = fs::read_to_string(filename)
+                .into_diagnostic()
+                .wrap_err_with(|| "reading file".to_string())?;
+            let mut exit_code = 0;
+            for res in Run::new(&input) {
                 match res {
                     Ok(r) => {}
                     Err(_) => exit_code = 65,
