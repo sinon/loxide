@@ -70,7 +70,13 @@ fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
             let l_expr = evaluate_expression(*left)?;
             let r_expr = evaluate_expression(*right)?;
             match operator.token_type {
-                TokenType::Minus | TokenType::Star | TokenType::Slash => match (&l_expr, &r_expr) {
+                TokenType::Minus
+                | TokenType::Star
+                | TokenType::Slash
+                | TokenType::Greater
+                | TokenType::GreaterEqual
+                | TokenType::Less
+                | TokenType::LessEqual => match (&l_expr, &r_expr) {
                     (EvaluatedValue::Number(_), EvaluatedValue::Number(_)) => {}
                     _ => {
                         eprintln!("Operand must be a number.");

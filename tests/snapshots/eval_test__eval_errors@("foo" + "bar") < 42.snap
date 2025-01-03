@@ -1,0 +1,7 @@
+---
+source: tests/eval_test.rs
+description: "(\"foo\" + \"bar\") < 42"
+---
+[
+    "Operand must be a number",
+]
