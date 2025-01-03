@@ -63,6 +63,10 @@ fn test_eval_literals(#[case] input: &str) {
 #[case("true / 2")]
 #[case("(\"foo\" * \"bar\")")]
 #[case("false / true")]
+#[case("\"foo\" + true")]
+#[case("42 - true")]
+#[case("true + false")]
+#[case("\"foo\" - \"bar\"")]
 fn test_eval_errors(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let mut errors = Vec::new();
