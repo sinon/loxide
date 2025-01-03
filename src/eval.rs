@@ -7,10 +7,11 @@ use std::fmt::Display;
 
 use crate::{
     lexer::TokenType,
-    parser::{Expr, LiteralAtom, Parser},
+    parser::{Expr, LiteralAtom, Parser, Stmt},
 };
 
 /// The value that an expression has evaluated too, this can be a literal.
+#[derive(Debug)]
 pub enum EvaluatedValue {
     /// String value `"hello"`
     String(String),
@@ -49,17 +50,30 @@ impl<'de> Eval<'de> {
 }
 
 impl Iterator for Eval<'_> {
-    type Item = Result<EvaluatedValue, String>;
+    type Item = Result<(), String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let expr = self.parser.next()?;
-
-        match expr {
-            Ok(e) => Some(evaluate_expression(e)),
+        let stmt = self.parser.next()?;
+        match stmt {
+            Ok(s) => Some(evaluate_statement(s)),
             Err(_) => todo!(),
         }
     }
 }
+
+fn evaluate_statement(stmt: Stmt) -> Result<(), String> {
+    match stmt {
+        Stmt::Print(expr) => {
+            let val = evaluate_expression(expr)?;
+            println!("{}", val);
+        }
+        Stmt::ExpressionStatement(expr) => {
+            let val = evaluate_expression(expr);
+        }
+    }
+    Ok(())
+}
+
 fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
     match expr {
         Expr::Binary {

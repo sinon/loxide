@@ -55,6 +55,13 @@ pub enum Expr<'de> {
     Grouping(Box<Expr<'de>>),
 }
 
+#[derive(Debug)]
+// `Stmt` represents the possible statements supported
+pub enum Stmt<'de> {
+    Print(Expr<'de>),
+    ExpressionStatement(Expr<'de>),
+}
+
 impl Display for Expr<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -82,16 +89,16 @@ impl Display for Expr<'_> {
 }
 
 impl<'de> Iterator for Parser<'de> {
-    type Item = Result<Expr<'de>, String>;
+    type Item = Result<Stmt<'de>, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.is_at_end() || self.parse_failed {
             return None;
         }
 
-        let exp = self.expression();
-        match exp {
-            Ok(e) => Some(Ok(e)),
+        let stmt = self.statement();
+        match stmt {
+            Ok(s) => Some(Ok(s)),
             Err(err) => {
                 eprintln!("{}", err);
                 self.parse_failed = true;
@@ -134,7 +141,7 @@ impl<'de> Parser<'de> {
         for exp in self {
             match exp {
                 Ok(ex) => {
-                    println!("{ex}");
+                    println!("{ex:?}");
                 }
                 Err(_) => {
                     exit_code = 65;
@@ -142,6 +149,39 @@ impl<'de> Parser<'de> {
             }
         }
         ExitCode::from(exit_code)
+    }
+
+    fn statement(&mut self) -> Result<Stmt<'de>, String> {
+        if self.match_tokens(&[TokenType::Print]) {
+            return self.print_statement();
+        }
+        return self.expression_statement();
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt<'de>, String> {
+        let expr = self.expression()?;
+        if let Some(token) = self.peek() {
+            self.consume(
+                TokenType::Semicolon,
+                token.origin,
+                token.line,
+                "Expect ';' after value.",
+            )?;
+        }
+        Ok(Stmt::ExpressionStatement(expr))
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt<'de>, String> {
+        let expr = self.expression()?;
+        if let Some(token) = self.peek() {
+            self.consume(
+                TokenType::Semicolon,
+                token.origin,
+                token.line,
+                "Expect ';' after value.",
+            )?;
+        }
+        Ok(Stmt::Print(expr))
     }
 
     fn expression(&mut self) -> Result<Expr<'de>, String> {
