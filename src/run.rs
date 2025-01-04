@@ -128,6 +128,13 @@ fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
                         _ => panic!("{} is not supported for String<>Number", operator),
                     }
                 }
+                (EvaluatedValue::Bool(b1), EvaluatedValue::Bool(b2), operator) => {
+                    match operator.token_type {
+                        TokenType::BangEqual => Ok(EvaluatedValue::Bool(b1 != b2)),
+                        TokenType::EqualEqual => Ok(EvaluatedValue::Bool(b1 == b2)),
+                        _ => panic!("{} is not for suppoer Bool / Bool binary", operator),
+                    }
+                }
                 (l, r, op) => todo!("Add handling for {l} {r} {op}"),
             }
         }
