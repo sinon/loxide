@@ -25,13 +25,19 @@ impl<'de> Run<'de> {
 }
 
 impl Iterator for Run<'_> {
-    type Item = Result<(), String>;
+    type Item = Result<(), u8>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let stmt = self.parser.next()?;
         match stmt {
-            Ok(s) => Some(evaluate_statement(s)),
-            Err(e) => Some(Err(e)),
+            Ok(s) => {
+                let eval_stmt = evaluate_statement(s);
+                match eval_stmt {
+                    Ok(_) => Some(Ok(())),
+                    Err(_) => Some(Err(70)),
+                }
+            }
+            Err(_) => Some(Err(65)),
         }
     }
 }

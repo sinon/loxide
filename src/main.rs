@@ -60,8 +60,8 @@ fn main() -> Result<ExitCode> {
             for res in Run::new(&input) {
                 match res {
                     Ok(_) => {}
-                    Err(_) => {
-                        exit_code = 70;
+                    Err(err_code) => {
+                        exit_code = err_code;
                         break;
                     }
                 }
