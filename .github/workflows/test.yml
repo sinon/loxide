@@ -51,9 +51,9 @@ jobs:
           fail_ci_if_error: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      # - name: Upload test results to Codecov
-      #   uses: codecov/test-results-action@v1.0.1 # v1.0.1
-      #   with:
-      #     fail_ci_if_error: true
-      #     files: reports/results.xml
-      #     token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload test results to Codecov
+        uses: codecov/test-results-action@v1.0.1 # v1.0.1
+        with:
+          fail_ci_if_error: true
+          files: reports/results.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
