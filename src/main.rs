@@ -61,7 +61,7 @@ fn main() -> Result<ExitCode> {
                 match res {
                     Ok(_) => {}
                     Err(_) => {
-                        exit_code = 65;
+                        exit_code = 70;
                         break;
                     }
                 }
