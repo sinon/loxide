@@ -1,17 +1,3 @@
-print "world" + "baz" + "bar";
-print 27 - 26;
-print "bar" == "quz";
-print "hello"; print true;
-print false;
-print "bar"; print 43;
-print 81;
-    print 81 + 46;
-        print 81 + 46 + 19;
-print true != true;
-
-print "36
-10
-78
-";
-
-print "There should be an empty line above this.";
+print "the expression below is invalid";
+49 + "baz";
+print "this should not be printed";
