@@ -1,0 +1,5 @@
+---
+source: tests/parser_test.rs
+description: "-10;"
+---
+(- 10.0)

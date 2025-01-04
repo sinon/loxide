@@ -1,0 +1,5 @@
+---
+source: tests/parser_test.rs
+description: 16 * 38 / 58;
+---
+(/ (* 16.0 38.0) 58.0)

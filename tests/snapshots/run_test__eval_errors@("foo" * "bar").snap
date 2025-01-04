@@ -1,0 +1,7 @@
+---
+source: tests/run_test.rs
+description: "(\"foo\" * \"bar\")"
+---
+[
+    "Operand must be a number",
+]

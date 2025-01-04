@@ -1,0 +1,5 @@
+---
+source: tests/run_test.rs
+description: "\"42\" + \"24\""
+---
+4224

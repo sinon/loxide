@@ -1,0 +1,5 @@
+---
+source: tests/run_test.rs
+description: 18 * 3 / (3 * 6)
+---
+3

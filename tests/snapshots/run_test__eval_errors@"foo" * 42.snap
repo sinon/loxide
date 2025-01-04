@@ -1,0 +1,7 @@
+---
+source: tests/run_test.rs
+description: "\"foo\" * 42"
+---
+[
+    "Operand must be a number",
+]
