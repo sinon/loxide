@@ -6,8 +6,8 @@
 use std::fmt::Display;
 
 use crate::{
+    eval_parser::{Expr, LiteralAtom, Parser},
     lexer::TokenType,
-    parser::{EvalParser, Expr, LiteralAtom},
 };
 
 /// The value that an expression has evaluated too, this can be a literal.
@@ -36,14 +36,14 @@ impl Display for EvaluatedValue {
 /// `Eval`
 /// an iterator that consumes expressions from the parser and tries to evaluate them.
 pub struct Eval<'de> {
-    parser: EvalParser<'de>,
+    parser: Parser<'de>,
 }
 
 impl<'de> Eval<'de> {
     /// Create a new `Eval` to process a given input source code
     pub fn new(input: &'de str) -> Self {
         Eval {
-            parser: EvalParser::new(input),
+            parser: Parser::new(input),
         }
     }
 }

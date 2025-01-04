@@ -1,5 +1,5 @@
 ---
-source: tests/parser_test.rs
+source: tests/eval_parser_test.rs
 description: "(\"foo\")"
 ---
 (group foo)

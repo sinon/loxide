@@ -1,1 +1,3 @@
-"hello" < true
+print "hello";
+print (12 + 56);
+print true;

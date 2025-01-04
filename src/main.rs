@@ -1,7 +1,7 @@
 use clap::Subcommand;
 use loxide::eval::Eval;
+use loxide::eval_parser::Parser;
 use loxide::lexer::Lexer;
-use loxide::parser::Parser;
 use loxide::run::Run;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use std::fs;
@@ -59,7 +59,7 @@ fn main() -> Result<ExitCode> {
             let mut exit_code = 0;
             for res in Run::new(&input) {
                 match res {
-                    Ok(r) => {}
+                    Ok(_) => {}
                     Err(_) => exit_code = 65,
                 }
             }

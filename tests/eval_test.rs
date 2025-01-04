@@ -1,5 +1,5 @@
 use insta::{assert_debug_snapshot, assert_snapshot};
-use loxide::run::Eval;
+use loxide::eval::Eval;
 use rstest::*;
 
 macro_rules! set_snapshot_suffix {

@@ -1,5 +1,0 @@
----
-source: tests/parser_test.rs
-description: "\"foo"
----
-[line 1] Error at end: Expect expression.

@@ -43,7 +43,7 @@ fn evaluate_statement(stmt: Stmt) -> Result<(), String> {
             println!("{}", val);
         }
         Stmt::ExpressionStatement(expr) => {
-            let val = evaluate_expression(expr);
+            evaluate_expression(expr)?;
         }
     }
     Ok(())

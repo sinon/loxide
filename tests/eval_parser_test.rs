@@ -1,5 +1,5 @@
 use insta::assert_snapshot;
-use loxide::parser::Parser;
+use loxide::eval_parser::Parser;
 use rstest::*;
 
 macro_rules! set_snapshot_suffix {
