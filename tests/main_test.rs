@@ -131,3 +131,46 @@ fn test_evaluate_with_file_error() {
 [line 1]\n",
         );
 }
+
+#[test]
+fn test_run_no_file() {
+    Command::cargo_bin("loxide")
+        .unwrap()
+        .arg("run")
+        .arg("text.lox")
+        .assert()
+        .failure()
+        .code(1);
+}
+
+#[test]
+fn test_run_with_file() {
+    Command::cargo_bin("loxide")
+        .unwrap()
+        .arg("run")
+        .arg("tests/fixtures/run.lox")
+        .assert()
+        .success()
+        .code(0)
+        .stdout(
+            "true
+true
+true
+the expression below is invalid\n",
+        );
+}
+
+#[test]
+fn test_run_with_file_error() {
+    Command::cargo_bin("loxide")
+        .unwrap()
+        .arg("run")
+        .arg("tests/fixtures/run_error.lox")
+        .assert()
+        .failure()
+        .code(70)
+        .stderr(
+            "Operand must be a number.
+[line 1]\n",
+        );
+}

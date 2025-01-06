@@ -1,7 +1,0 @@
----
-source: tests/run_test.rs
-description: "-(\"world\" + \"foo\")"
----
-[
-    "Operand must be a number",
-]

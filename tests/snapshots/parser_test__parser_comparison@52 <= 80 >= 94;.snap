@@ -1,5 +1,0 @@
----
-source: tests/parser_test.rs
-description: 52 <= 80 >= 94;
----
-(>= (<= 52.0 80.0) 94.0)

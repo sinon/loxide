@@ -1,5 +1,0 @@
----
-source: tests/run_test.rs
-description: "\"61\" != 61"
----
-true

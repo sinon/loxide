@@ -1,0 +1,9 @@
+(37 + 42 - 21) > (76 - 37) * 2;
+print !false;
+"baz" + "hello" + "quz" + "bar" == "bazhelloquzbar";
+print !false;
+27 - 60 >= -99 * 2 / 99 + 76;
+true == true;
+("world" == "bar") == ("baz" != "hello");
+print true;
+print "the expression below is invalid";

@@ -1,0 +1,4 @@
+49 + "baz";
+print "this should not be printed";
+print "79" + "baz";
+print false * (18 + 84);

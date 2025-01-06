@@ -1,7 +1,0 @@
----
-source: tests/run_test.rs
-description: false > true
----
-[
-    "Operand must be a number",
-]
