@@ -4,8 +4,6 @@
 //!
 //! Uses a recursive desecent parser. To transform the token stream into
 //! `Expr`
-use std::{fmt::Display, process::ExitCode};
-
 use crate::lexer::{Lexer, Token, TokenType};
 
 /// `Parser` is responsible for iterating over the token stream from `Lexer`
@@ -14,7 +12,6 @@ pub struct Parser<'de> {
     tokens: Vec<Token<'de>>,
     current: usize,
     parse_failed: bool,
-    has_lex_error: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -68,35 +65,6 @@ pub enum Stmt<'de> {
     Var(&'de str, Option<Expr<'de>>),
 }
 
-impl Display for Expr<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Expr::Unary { operator, right } => {
-                write!(f, "({} {})", operator.origin, right)
-            }
-            Expr::Binary {
-                left,
-                operator,
-                right,
-            } => {
-                write!(f, "({} {} {})", operator.origin, left, right)
-            }
-            Expr::Grouping(exp) => {
-                write!(f, "(group {})", exp)
-            }
-            Expr::Literal(literal_atom) => match literal_atom {
-                LiteralAtom::String(cow) => write!(f, "{}", cow),
-                LiteralAtom::Number(num) => write!(f, "{:?}", num),
-                LiteralAtom::Nil => write!(f, "nil"),
-                LiteralAtom::Bool(b) => write!(f, "{b:?}"),
-            },
-            Expr::Variable(token) => {
-                write!(f, "{}", token.origin)
-            }
-        }
-    }
-}
-
 impl<'de> Iterator for Parser<'de> {
     type Item = Result<Stmt<'de>, String>;
 
@@ -121,14 +89,12 @@ impl<'de> Parser<'de> {
     /// Create new `Parser` from a lexed token stream
     pub fn new(input: &'de str) -> Self {
         let mut tokens = Vec::<Token>::new();
-        let mut has_lex_error = false;
         for token in Lexer::new(input) {
             match token {
                 Ok(t) => {
                     tokens.push(t);
                 }
                 Err(_) => {
-                    has_lex_error = true;
                     continue;
                 }
             }
@@ -137,27 +103,7 @@ impl<'de> Parser<'de> {
             tokens,
             current: 0,
             parse_failed: false,
-            has_lex_error,
         }
-    }
-    /// Parse the token stream, returning an `ExitCode` to indicate if the process
-    /// encountered an error when running
-    pub fn parse(&mut self) -> ExitCode {
-        let mut exit_code = 0;
-        if self.has_lex_error {
-            exit_code = 65;
-        }
-        for exp in self {
-            match exp {
-                Ok(ex) => {
-                    println!("{ex:?}");
-                }
-                Err(_) => {
-                    exit_code = 65;
-                }
-            }
-        }
-        ExitCode::from(exit_code)
     }
 
     fn declaration(&mut self) -> Result<Stmt<'de>, String> {
