@@ -168,28 +168,25 @@ impl<'de> Parser<'de> {
     }
 
     fn var_declaration(&mut self) -> Result<Stmt<'de>, String> {
-        let name = if let Some(token) = self.peek() {
-            self.consume(
+        let token = self.peek();
+        let name = self
+            .consume(
                 TokenType::Identifier,
                 token.origin,
                 token.line,
                 "Expect variable name.",
             )?
-            .origin
-        } else {
-            return Err("Expect variable name.".to_string());
-        };
+            .origin;
         let mut intializer = None;
         if self.match_tokens(&[TokenType::Equal]) {
             intializer = Some(self.expression()?);
-            if let Some(token) = self.peek() {
-                self.consume(
-                    TokenType::Semicolon,
-                    token.origin,
-                    token.line,
-                    "Expect ';' after value.",
-                )?;
-            }
+            let token = self.peek();
+            self.consume(
+                TokenType::Semicolon,
+                token.origin,
+                token.line,
+                "Expect ';' after value.",
+            )?;
         }
         Ok(Stmt::Var(name, intializer))
     }
@@ -203,27 +200,25 @@ impl<'de> Parser<'de> {
 
     fn expression_statement(&mut self) -> Result<Stmt<'de>, String> {
         let expr = self.expression()?;
-        if let Some(token) = self.peek() {
-            self.consume(
-                TokenType::Semicolon,
-                token.origin,
-                token.line,
-                "Expect ';' after value.",
-            )?;
-        }
+        let token = self.peek();
+        self.consume(
+            TokenType::Semicolon,
+            token.origin,
+            token.line,
+            "Expect ';' after value.",
+        )?;
         Ok(Stmt::ExpressionStatement(expr))
     }
 
     fn print_statement(&mut self) -> Result<Stmt<'de>, String> {
         let expr = self.expression()?;
-        if let Some(token) = self.peek() {
-            self.consume(
-                TokenType::Semicolon,
-                token.origin,
-                token.line,
-                "Expect ';' after value.",
-            )?;
-        }
+        let token = self.peek();
+        self.consume(
+            TokenType::Semicolon,
+            token.origin,
+            token.line,
+            "Expect ';' after value.",
+        )?;
         Ok(Stmt::Print(expr))
     }
 
@@ -314,54 +309,51 @@ impl<'de> Parser<'de> {
     }
 
     fn primary(&mut self) -> Result<Expr<'de>, String> {
-        if let Some(token) = self.peek() {
-            let origin = token.origin;
-            let line_num = token.line;
-            match token.token_type {
-                TokenType::Number(n) => {
-                    self.advance();
-                    Ok(Expr::Literal(LiteralAtom::Number(n)))
-                }
-                TokenType::String => {
-                    self.advance();
-                    Ok(Expr::Literal(LiteralAtom::String(origin)))
-                }
-                TokenType::True => {
-                    self.advance();
-                    Ok(Expr::Literal(LiteralAtom::Bool(true)))
-                }
-                TokenType::False => {
-                    self.advance();
-                    Ok(Expr::Literal(LiteralAtom::Bool(false)))
-                }
-                TokenType::Nil => {
-                    self.advance();
-                    Ok(Expr::Literal(LiteralAtom::Nil))
-                }
-                TokenType::LeftParen => {
-                    self.advance();
-                    let expr = self.expression()?;
-                    self.consume(
-                        TokenType::RightParen,
-                        origin,
-                        line_num,
-                        "Expect ')' after expression",
-                    )?;
-                    Ok(Expr::Grouping(Box::new(expr)))
-                }
-                TokenType::Identifier => {
-                    self.advance();
-                    Ok(Expr::Variable(self.previous().clone()))
-                }
-                _ => {
-                    let err_msg = self
-                        .error_msg(&token.token_type, origin, line_num, "Expect expression")
-                        .to_string();
-                    Err(err_msg)
-                }
+        let token = self.peek();
+        let origin = token.origin;
+        let line_num = token.line;
+        match token.token_type {
+            TokenType::Number(n) => {
+                self.advance();
+                Ok(Expr::Literal(LiteralAtom::Number(n)))
             }
-        } else {
-            Err("error".to_string())
+            TokenType::String => {
+                self.advance();
+                Ok(Expr::Literal(LiteralAtom::String(origin)))
+            }
+            TokenType::True => {
+                self.advance();
+                Ok(Expr::Literal(LiteralAtom::Bool(true)))
+            }
+            TokenType::False => {
+                self.advance();
+                Ok(Expr::Literal(LiteralAtom::Bool(false)))
+            }
+            TokenType::Nil => {
+                self.advance();
+                Ok(Expr::Literal(LiteralAtom::Nil))
+            }
+            TokenType::LeftParen => {
+                self.advance();
+                let expr = self.expression()?;
+                self.consume(
+                    TokenType::RightParen,
+                    origin,
+                    line_num,
+                    "Expect ')' after expression",
+                )?;
+                Ok(Expr::Grouping(Box::new(expr)))
+            }
+            TokenType::Identifier => {
+                self.advance();
+                Ok(Expr::Variable(self.previous().clone()))
+            }
+            _ => {
+                let err_msg = self
+                    .error_msg(&token.token_type, origin, line_num, "Expect expression")
+                    .to_string();
+                Err(err_msg)
+            }
         }
     }
 
@@ -380,8 +372,7 @@ impl<'de> Parser<'de> {
         if self.is_at_end() {
             return false;
         }
-        std::mem::discriminant(&self.peek().unwrap().token_type)
-            == std::mem::discriminant(token_type)
+        std::mem::discriminant(&self.peek().token_type) == std::mem::discriminant(token_type)
     }
 
     fn advance(&mut self) -> &Token<'de> {
@@ -391,8 +382,10 @@ impl<'de> Parser<'de> {
         self.previous()
     }
 
-    fn peek(&self) -> Option<&Token<'de>> {
-        self.tokens.get(self.current)
+    fn peek(&self) -> &Token<'de> {
+        self.tokens
+            .get(self.current)
+            .expect("current should never be outside index")
     }
 
     fn previous(&self) -> &Token<'de> {
@@ -400,11 +393,8 @@ impl<'de> Parser<'de> {
     }
 
     fn is_at_end(&self) -> bool {
-        if let Some(token) = self.peek() {
-            matches!(token.token_type, TokenType::Eof)
-        } else {
-            true
-        }
+        let token = self.peek();
+        matches!(token.token_type, TokenType::Eof)
     }
 
     fn consume(

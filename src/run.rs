@@ -212,7 +212,7 @@ fn evaluate_expression(
         Expr::Grouping(expr) => evaluate_expression(*expr, environment),
         Expr::Variable(token) => match environment.get(&token.origin) {
             Some(v) => Ok(v.clone()),
-            None => todo!(),
+            None => Ok(EvaluatedValue::Nil),
         },
     }
 }
