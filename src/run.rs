@@ -3,6 +3,8 @@
 //! Responsible for running the AST and returning the computed values
 //!
 
+use std::collections::HashMap;
+
 use crate::{
     eval::EvaluatedValue,
     lexer::TokenType,
@@ -13,6 +15,7 @@ use crate::{
 /// an iterator that consumes expressions from the parser and tries to evaluate them.
 pub struct Run<'de> {
     parser: Parser<'de>,
+    environment: HashMap<&'de str, EvaluatedValue>,
 }
 
 impl<'de> Run<'de> {
@@ -20,6 +23,7 @@ impl<'de> Run<'de> {
     pub fn new(input: &'de str) -> Self {
         Run {
             parser: Parser::new(input),
+            environment: HashMap::new(),
         }
     }
 }
@@ -31,7 +35,7 @@ impl Iterator for Run<'_> {
         let stmt = self.parser.next()?;
         match stmt {
             Ok(s) => {
-                let eval_stmt = evaluate_statement(s);
+                let eval_stmt = evaluate_statement(s, &mut self.environment);
                 match eval_stmt {
                     Ok(_) => Some(Ok(())),
                     Err(_) => Some(Err(70)),
@@ -42,28 +46,43 @@ impl Iterator for Run<'_> {
     }
 }
 
-fn evaluate_statement(stmt: Stmt) -> Result<(), String> {
+fn evaluate_statement<'de>(
+    stmt: Stmt<'de>,
+    environment: &mut HashMap<&'de str, EvaluatedValue>,
+) -> Result<(), String> {
     match stmt {
         Stmt::Print(expr) => {
-            let val = evaluate_expression(expr)?;
+            let val = evaluate_expression(expr, environment)?;
             println!("{}", val);
         }
         Stmt::ExpressionStatement(expr) => {
-            evaluate_expression(expr)?;
+            evaluate_expression(expr, environment)?;
         }
+        Stmt::Var(name, expr) => match expr {
+            Some(v) => {
+                let evalutated_val = evaluate_expression(v, environment)?;
+                environment.insert(name, evalutated_val);
+            }
+            None => {
+                environment.insert(name, EvaluatedValue::Nil);
+            }
+        },
     }
     Ok(())
 }
 
-fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
+fn evaluate_expression(
+    expr: Expr,
+    environment: &mut HashMap<&str, EvaluatedValue>,
+) -> Result<EvaluatedValue, String> {
     match expr {
         Expr::Binary {
             left,
             operator,
             right,
         } => {
-            let l_expr = evaluate_expression(*left)?;
-            let r_expr = evaluate_expression(*right)?;
+            let l_expr = evaluate_expression(*left, environment)?;
+            let r_expr = evaluate_expression(*right, environment)?;
             match operator.token_type {
                 TokenType::Minus
                 | TokenType::Star
@@ -145,7 +164,7 @@ fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
             }
         }
         Expr::Unary { operator, right } => {
-            let r = evaluate_expression(*right);
+            let r = evaluate_expression(*right, environment);
             if let (TokenType::Minus, Ok(e)) = (operator.token_type, &r) {
                 match e {
                     EvaluatedValue::Number(_) => {}
@@ -190,6 +209,10 @@ fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
             LiteralAtom::Nil => Ok(EvaluatedValue::Nil),
             LiteralAtom::Bool(b) => Ok(EvaluatedValue::Bool(b)),
         },
-        Expr::Grouping(expr) => evaluate_expression(*expr),
+        Expr::Grouping(expr) => evaluate_expression(*expr, environment),
+        Expr::Variable(token) => match environment.get(&token.origin) {
+            Some(v) => Ok(v.clone()),
+            None => todo!(),
+        },
     }
 }

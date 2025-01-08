@@ -11,6 +11,7 @@ use crate::{
 };
 
 /// The value that an expression has evaluated too, this can be a literal.
+#[derive(Clone)]
 pub enum EvaluatedValue {
     /// String value `"hello"`
     String(String),

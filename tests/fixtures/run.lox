@@ -7,3 +7,6 @@ true == true;
 ("world" == "bar") == ("baz" != "hello");
 print true;
 print "the expression below is invalid";
+var a = 1;
+var b = 2;
+print a + b;

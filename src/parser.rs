@@ -53,6 +53,8 @@ pub enum Expr<'de> {
     Literal(LiteralAtom<'de>),
     /// `Grouping` holds other `Expr` such as `(1 * 2)`
     Grouping(Box<Expr<'de>>),
+    /// `Variable`
+    Variable(Token<'de>),
 }
 
 #[derive(Debug)]
@@ -62,6 +64,8 @@ pub enum Stmt<'de> {
     Print(Expr<'de>),
     /// An expression statement
     ExpressionStatement(Expr<'de>),
+    /// Var statement
+    Var(&'de str, Option<Expr<'de>>),
 }
 
 impl Display for Expr<'_> {
@@ -86,6 +90,9 @@ impl Display for Expr<'_> {
                 LiteralAtom::Nil => write!(f, "nil"),
                 LiteralAtom::Bool(b) => write!(f, "{b:?}"),
             },
+            Expr::Variable(token) => {
+                write!(f, "{}", token.origin)
+            }
         }
     }
 }
@@ -98,7 +105,7 @@ impl<'de> Iterator for Parser<'de> {
             return None;
         }
 
-        let stmt = self.statement();
+        let stmt = self.declaration();
         match stmt {
             Ok(s) => Some(Ok(s)),
             Err(err) => {
@@ -151,6 +158,40 @@ impl<'de> Parser<'de> {
             }
         }
         ExitCode::from(exit_code)
+    }
+
+    fn declaration(&mut self) -> Result<Stmt<'de>, String> {
+        if self.match_tokens(&[TokenType::Var]) {
+            return self.var_declaration();
+        }
+        self.statement()
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt<'de>, String> {
+        let name = if let Some(token) = self.peek() {
+            self.consume(
+                TokenType::Identifier,
+                token.origin,
+                token.line,
+                "Expect variable name.",
+            )?
+            .origin
+        } else {
+            return Err("Expect variable name.".to_string());
+        };
+        let mut intializer = None;
+        if self.match_tokens(&[TokenType::Equal]) {
+            intializer = Some(self.expression()?);
+            if let Some(token) = self.peek() {
+                self.consume(
+                    TokenType::Semicolon,
+                    token.origin,
+                    token.line,
+                    "Expect ';' after value.",
+                )?;
+            }
+        }
+        Ok(Stmt::Var(name, intializer))
     }
 
     fn statement(&mut self) -> Result<Stmt<'de>, String> {
@@ -307,6 +348,10 @@ impl<'de> Parser<'de> {
                         "Expect ')' after expression",
                     )?;
                     Ok(Expr::Grouping(Box::new(expr)))
+                }
+                TokenType::Identifier => {
+                    self.advance();
+                    Ok(Expr::Variable(self.previous().clone()))
                 }
                 _ => {
                     let err_msg = self
