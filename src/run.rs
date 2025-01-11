@@ -212,7 +212,11 @@ fn evaluate_expression(
         Expr::Grouping(expr) => evaluate_expression(*expr, environment),
         Expr::Variable(token) => match environment.get(&token.origin) {
             Some(v) => Ok(v.clone()),
-            None => Ok(EvaluatedValue::Nil),
+            None => {
+                eprintln!("Undefined variable '{}'.", token.origin);
+                eprintln!("[line {}]", token.line);
+                Err("Undefined var".to_string())
+            }
         },
     }
 }

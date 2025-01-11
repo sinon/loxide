@@ -1,4 +1,5 @@
 use assert_cmd::Command;
+use rstest::rstest;
 
 #[test]
 fn test_cli_version() {
@@ -160,17 +161,19 @@ the expression below is invalid\n3\nsomething\ntrue\ntrue\ntrue\nfalse\nnil\n",
         );
 }
 
-#[test]
-fn test_run_with_file_error() {
+#[rstest]
+#[case("run_error", "Operand must be a number.\n[line 1]\n")]
+#[case("run_error_undefined_var", "Undefined variable 'a'.\n[line 1]\n")]
+fn test_run_with_file_error(#[case] file_name: &str, #[case] expected_err: &str) {
+    // let path = format!("tests/fixtures/{file_name}.lox");
+    let err = expected_err.to_string();
+    let path = format!("tests/fixtures/{file_name}.lox");
     Command::cargo_bin("loxide")
         .unwrap()
         .arg("run")
-        .arg("tests/fixtures/run_error.lox")
+        .arg(path)
         .assert()
         .failure()
         .code(70)
-        .stderr(
-            "Operand must be a number.
-[line 1]\n",
-        );
+        .stderr(err);
 }
