@@ -18,6 +18,7 @@ pub struct Run<'de> {
     environment: Environment<'de>,
 }
 
+#[derive(Debug, Clone)]
 struct Environment<'de> {
     data: HashMap<&'de str, EvaluatedValue>,
     enclosing: Option<Box<Environment<'de>>>,
@@ -31,9 +32,16 @@ impl<'de> Environment<'de> {
         }
     }
 
-    fn get(&mut self, key: &'de str) -> Option<EvaluatedValue> {
+    fn from_parent(enclosing: &Environment<'de>) -> Self {
+        Environment {
+            data: HashMap::new(),
+            enclosing: Some(Box::new(enclosing.clone())),
+        }
+    }
+
+    fn get(&self, key: &'de str) -> Option<EvaluatedValue> {
         match &self.enclosing {
-            Some(env) => match env.data.get(key) {
+            Some(env) => match env.get(key) {
                 Some(v) => Some(v.clone()),
                 None => None,
             },
@@ -48,11 +56,11 @@ impl<'de> Environment<'de> {
         match &mut self.enclosing {
             Some(env) => {
                 env.assign(key, value)?;
-                return Ok(());
+                Ok(())
             }
             None => {
                 self.data.insert(key, value.clone());
-                return Ok(());
+                Ok(())
             }
         }
     }
@@ -108,8 +116,11 @@ fn evaluate_statement<'de>(
             }
         },
         Stmt::Block(stmts) => {
+            // TODO: Bug where Expr::Assign mutations to enclosing env are lost
+            // See `run_error_undefined_var.lox` for failure triggering source code example
+            let mut new_env = Environment::from_parent(environment);
             for stmt in stmts {
-                evaluate_statement(stmt, environment)?;
+                evaluate_statement(stmt, &mut new_env)?;
             }
         }
     }
@@ -255,7 +266,7 @@ fn evaluate_expression<'de>(
             LiteralAtom::Bool(b) => Ok(EvaluatedValue::Bool(b)),
         },
         Expr::Grouping(expr) => evaluate_expression(*expr, environment),
-        Expr::Variable(token) => match environment.get(&token.origin) {
+        Expr::Variable(token) => match environment.get(token.origin) {
             Some(v) => Ok(v),
             None => {
                 eprintln!("Undefined variable '{}'.", token.origin);
@@ -266,7 +277,22 @@ fn evaluate_expression<'de>(
         Expr::Assign(name, expr) => match environment.get(name) {
             Some(_) => {
                 let eval_expr = evaluate_expression(*expr, environment)?;
+                // dbg!("ReAssigning: {name} to '{eval_expr}'");
+                // dbg!("{environment:?}");
+                // dbg!("{:?}", &environment.enclosing);
+                // if let Some(enc) = &mut environment.enclosing {
+                //     enc.assign(name, &eval_expr)?;
+                // } else {
+                //     environment.assign(name, &eval_expr)?;
+                // }
+                // environment
+                //     .enclosing
+                //     .as_mut()
+                //     .unwrap()
+                //     .assign(name, &eval_expr)?;
                 environment.assign(name, &eval_expr)?;
+                // dbg!("{environment:?}");
+                // dbg!("{:?}", environment.enclosing);
                 Ok(eval_expr)
             }
             None => todo!(),

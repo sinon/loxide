@@ -157,16 +157,25 @@ fn test_run_with_file() {
             "true
 true
 true
-the expression below is invalid\n3\nsomething\ntrue\ntrue\ntrue\nfalse\nnil\nnil\n98\n98\nbefore\nafter\n",
+the expression below is invalid\n3\nsomething\ntrue\ntrue\ntrue\nfalse\nnil\nnil\n98\n98\nbefore\nafter\nafter\nbefore
+inner world\nouter baz\nglobal quz\nouter world\nouter baz\nglobal quz\nglobal world\nglobal baz\nglobal quz\n",
         );
 }
 
 #[rstest]
-#[case("run_error", "Operand must be a number.\n[line 1]\n")]
-#[case("run_error_undefined_var", "Undefined variable 'a'.\n[line 1]\n")]
-fn test_run_with_file_error(#[case] file_name: &str, #[case] expected_err: &str) {
-    // let path = format!("tests/fixtures/{file_name}.lox");
+#[case("run_error", "Operand must be a number.\n[line 1]\n", "")]
+#[case(
+    "run_error_undefined_var",
+    "Undefined variable 'quz'.\n[line 17]\n",
+    "modified foo\ninner quz\nmodified foo\nouter quz\n"
+)]
+fn test_run_with_file_error(
+    #[case] file_name: &str,
+    #[case] expected_err: &str,
+    #[case] expected_stdout: &str,
+) {
     let err = expected_err.to_string();
+    let out = expected_stdout.to_string();
     let path = format!("tests/fixtures/{file_name}.lox");
     Command::cargo_bin("loxide")
         .unwrap()
@@ -175,5 +184,6 @@ fn test_run_with_file_error(#[case] file_name: &str, #[case] expected_err: &str)
         .assert()
         .failure()
         .code(70)
-        .stderr(err);
+        .stderr(err)
+        .stdout(out);
 }

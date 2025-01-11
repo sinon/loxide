@@ -34,3 +34,31 @@ print x;
     var foo = "after";
     print foo;
 }
+{
+    var world = "before";
+    {
+        var world = "after";
+        print world;
+    }
+    print world;
+}
+// This program creates nested scopes and tests local scopes and variable shadowing
+var world = "global world";
+var baz = "global baz";
+var quz = "global quz";
+{
+  var world = "outer world";
+  var baz = "outer baz";
+  {
+    var world = "inner world";
+    print world; // "inner world"
+    print baz;  // "outer baz"
+    print quz;  // "global quz"
+  }
+  print world;  // "outer world"
+  print baz;  // "outer baz"
+  print quz;  // "global quz"
+}
+print world;  // "global world"
+print baz;  // "global baz"
+print quz;  // "global_quz"
