@@ -157,7 +157,7 @@ fn test_run_with_file() {
             "true
 true
 true
-the expression below is invalid\n3\nsomething\ntrue\ntrue\ntrue\nfalse\nnil\nnil\n98\n98\n",
+the expression below is invalid\n3\nsomething\ntrue\ntrue\ntrue\nfalse\nnil\nnil\n98\n98\nbefore\nafter\n",
         );
 }
 

@@ -15,7 +15,47 @@ use crate::{
 /// an iterator that consumes expressions from the parser and tries to evaluate them.
 pub struct Run<'de> {
     parser: Parser<'de>,
-    environment: HashMap<&'de str, EvaluatedValue>,
+    environment: Environment<'de>,
+}
+
+struct Environment<'de> {
+    data: HashMap<&'de str, EvaluatedValue>,
+    enclosing: Option<Box<Environment<'de>>>,
+}
+
+impl<'de> Environment<'de> {
+    fn new() -> Self {
+        Environment {
+            data: HashMap::new(),
+            enclosing: None,
+        }
+    }
+
+    fn get(&mut self, key: &'de str) -> Option<EvaluatedValue> {
+        match &self.enclosing {
+            Some(env) => match env.data.get(key) {
+                Some(v) => Some(v.clone()),
+                None => None,
+            },
+            None => match self.data.get(key) {
+                Some(v) => Some(v.clone()),
+                None => None,
+            },
+        }
+    }
+
+    fn assign(&mut self, key: &'de str, value: &EvaluatedValue) -> Result<(), String> {
+        match &mut self.enclosing {
+            Some(env) => {
+                env.assign(key, value)?;
+                return Ok(());
+            }
+            None => {
+                self.data.insert(key, value.clone());
+                return Ok(());
+            }
+        }
+    }
 }
 
 impl<'de> Run<'de> {
@@ -23,7 +63,7 @@ impl<'de> Run<'de> {
     pub fn new(input: &'de str) -> Self {
         Run {
             parser: Parser::new(input),
-            environment: HashMap::new(),
+            environment: Environment::new(),
         }
     }
 }
@@ -48,7 +88,7 @@ impl Iterator for Run<'_> {
 
 fn evaluate_statement<'de>(
     stmt: Stmt<'de>,
-    environment: &mut HashMap<&'de str, EvaluatedValue>,
+    environment: &mut Environment<'de>,
 ) -> Result<(), String> {
     match stmt {
         Stmt::Print(expr) => {
@@ -61,19 +101,24 @@ fn evaluate_statement<'de>(
         Stmt::Var(name, expr) => match expr {
             Some(v) => {
                 let evalutated_val = evaluate_expression(v, environment)?;
-                environment.insert(name, evalutated_val);
+                environment.assign(name, &evalutated_val)?;
             }
             None => {
-                environment.insert(name, EvaluatedValue::Nil);
+                environment.assign(name, &EvaluatedValue::Nil)?;
             }
         },
+        Stmt::Block(stmts) => {
+            for stmt in stmts {
+                evaluate_statement(stmt, environment)?;
+            }
+        }
     }
     Ok(())
 }
 
 fn evaluate_expression<'de>(
     expr: Expr<'de>,
-    environment: &mut HashMap<&'de str, EvaluatedValue>,
+    environment: &mut Environment<'de>,
 ) -> Result<EvaluatedValue, String> {
     match expr {
         Expr::Binary {
@@ -211,7 +256,7 @@ fn evaluate_expression<'de>(
         },
         Expr::Grouping(expr) => evaluate_expression(*expr, environment),
         Expr::Variable(token) => match environment.get(&token.origin) {
-            Some(v) => Ok(v.clone()),
+            Some(v) => Ok(v),
             None => {
                 eprintln!("Undefined variable '{}'.", token.origin);
                 eprintln!("[line {}]", token.line);
@@ -221,7 +266,7 @@ fn evaluate_expression<'de>(
         Expr::Assign(name, expr) => match environment.get(name) {
             Some(_) => {
                 let eval_expr = evaluate_expression(*expr, environment)?;
-                environment.insert(name, eval_expr.clone());
+                environment.assign(name, &eval_expr)?;
                 Ok(eval_expr)
             }
             None => todo!(),

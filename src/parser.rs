@@ -65,6 +65,8 @@ pub enum Stmt<'de> {
     ExpressionStatement(Expr<'de>),
     /// Var statement
     Var(&'de str, Option<Expr<'de>>),
+    /// Block
+    Block(Vec<Stmt<'de>>),
 }
 
 impl<'de> Iterator for Parser<'de> {
@@ -143,7 +145,27 @@ impl<'de> Parser<'de> {
         if self.match_tokens(&[TokenType::Print]) {
             return self.print_statement();
         }
+        if self.match_tokens(&[TokenType::LeftBrace]) {
+            let stmts = self.block()?;
+            return Ok(Stmt::Block(stmts));
+        }
         self.expression_statement()
+    }
+
+    fn block(&mut self) -> Result<Vec<Stmt<'de>>, String> {
+        let mut stmts: Vec<Stmt<'de>> = Vec::new();
+        while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
+            stmts.push(self.declaration()?)
+        }
+
+        let token = self.peek();
+        self.consume(
+            TokenType::RightBrace,
+            token.origin,
+            token.line,
+            "Expect '}' after block.",
+        )?;
+        Ok(stmts)
     }
 
     fn expression_statement(&mut self) -> Result<Stmt<'de>, String> {

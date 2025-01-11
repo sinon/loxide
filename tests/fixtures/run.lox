@@ -26,3 +26,11 @@ var y = 99;
 var x = y = 98;
 print y;
 print x;
+{
+    var foo = "before";
+    print foo;
+}
+{
+    var foo = "after";
+    print foo;
+}
