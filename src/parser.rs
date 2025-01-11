@@ -126,14 +126,14 @@ impl<'de> Parser<'de> {
         let mut intializer = None;
         if self.match_tokens(&[TokenType::Equal]) {
             intializer = Some(self.expression()?);
-            let token = self.peek();
-            self.consume(
-                TokenType::Semicolon,
-                token.origin,
-                token.line,
-                "Expect ';' after value.",
-            )?;
         }
+        let token = self.peek();
+        self.consume(
+            TokenType::Semicolon,
+            token.origin,
+            token.line,
+            "Expect ';' after value.",
+        )?;
         Ok(Stmt::Var(name, intializer))
     }
 
