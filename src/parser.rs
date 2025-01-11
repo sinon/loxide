@@ -52,6 +52,8 @@ pub enum Expr<'de> {
     Grouping(Box<Expr<'de>>),
     /// `Variable`
     Variable(Token<'de>),
+    /// `Assign`
+    Assign(&'de str, Box<Expr<'de>>),
 }
 
 #[derive(Debug)]
@@ -169,7 +171,34 @@ impl<'de> Parser<'de> {
     }
 
     fn expression(&mut self) -> Result<Expr<'de>, String> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr<'de>, String> {
+        let expr = self.equality()?;
+
+        if self.match_tokens(&[TokenType::Equal]) {
+            let equals = self.previous().clone();
+            let value = self.assignment()?;
+
+            match expr {
+                Expr::Variable(token) => {
+                    let name = token.origin;
+                    return Ok(Expr::Assign(name, Box::new(value)));
+                }
+                _ => {
+                    let err_msg = self.error_msg(
+                        &equals.token_type,
+                        equals.origin,
+                        equals.line,
+                        "Invalid assignment type.",
+                    );
+                    return Err(err_msg.to_string());
+                }
+            }
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr<'de>, String> {

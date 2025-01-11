@@ -71,9 +71,9 @@ fn evaluate_statement<'de>(
     Ok(())
 }
 
-fn evaluate_expression(
-    expr: Expr,
-    environment: &mut HashMap<&str, EvaluatedValue>,
+fn evaluate_expression<'de>(
+    expr: Expr<'de>,
+    environment: &mut HashMap<&'de str, EvaluatedValue>,
 ) -> Result<EvaluatedValue, String> {
     match expr {
         Expr::Binary {
@@ -217,6 +217,14 @@ fn evaluate_expression(
                 eprintln!("[line {}]", token.line);
                 Err("Undefined var".to_string())
             }
+        },
+        Expr::Assign(name, expr) => match environment.get(name) {
+            Some(_) => {
+                let eval_expr = evaluate_expression(*expr, environment)?;
+                environment.insert(name, eval_expr.clone());
+                Ok(eval_expr)
+            }
+            None => todo!(),
         },
     }
 }

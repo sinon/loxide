@@ -21,3 +21,8 @@ var d = nil;
 print d;
 var f;
 print f;
+var x;
+var y = 99;
+var x = y = 98;
+print y;
+print x;
