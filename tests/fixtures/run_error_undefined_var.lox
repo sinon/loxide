@@ -11,7 +11,7 @@
     print foo;  // "modified foo"
     print quz;  // "inner quz"
   }
-  print foo;  // "mofiedied foo"
+  print foo;  // "modified foo"
   print quz;  // "outer quz"
 }
 print quz;

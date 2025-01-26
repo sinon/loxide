@@ -64,6 +64,7 @@ pub enum Stmt<'de> {
     /// An expression statement
     ExpressionStatement(Expr<'de>),
     /// Var statement
+    // var <identifier> = expr;
     Var(&'de str, Option<Expr<'de>>),
     /// Block
     Block(Vec<Stmt<'de>>),

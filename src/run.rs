@@ -3,7 +3,7 @@
 //! Responsible for running the AST and returning the computed values
 //!
 
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     eval::EvaluatedValue,
@@ -21,7 +21,7 @@ pub struct Run<'de> {
 #[derive(Debug, Clone)]
 struct Environment<'de> {
     data: HashMap<&'de str, EvaluatedValue>,
-    enclosing: Option<Box<Environment<'de>>>,
+    enclosing: Option<Rc<RefCell<Environment<'de>>>>,
 }
 
 impl<'de> Environment<'de> {
@@ -32,37 +32,51 @@ impl<'de> Environment<'de> {
         }
     }
 
-    fn from_parent(enclosing: &Environment<'de>) -> Self {
+    fn from_parent(enclosing: Environment<'de>) -> Self {
         Environment {
             data: HashMap::new(),
-            enclosing: Some(Box::new(enclosing.clone())),
+            enclosing: Some(Rc::new(RefCell::new(enclosing))),
         }
     }
 
     fn get(&self, key: &'de str) -> Option<EvaluatedValue> {
-        match &self.enclosing {
-            Some(env) => match env.get(key) {
-                Some(v) => Some(v.clone()),
-                None => None,
-            },
-            None => match self.data.get(key) {
-                Some(v) => Some(v.clone()),
+        // get the given key from the environment
+        // checks the current scope level, then works up through the enclosing env
+
+        match self.data.get(key) {
+            Some(v) => Some(v.clone()),
+            None => match &self.enclosing {
+                Some(parent) => {
+                    let p = parent.borrow();
+                    p.get(key)
+                }
                 None => None,
             },
         }
     }
 
     fn assign(&mut self, key: &'de str, value: &EvaluatedValue) -> Result<(), String> {
-        match &mut self.enclosing {
-            Some(env) => {
-                env.assign(key, value)?;
-                Ok(())
-            }
-            None => {
+        // dbg!(&self.data);
+        match self.data.get(key) {
+            Some(_) => {
                 self.data.insert(key, value.clone());
                 Ok(())
             }
+            None => match &self.enclosing {
+                Some(parent) => {
+                    let mut p = parent.borrow_mut();
+                    p.assign(key, value)?;
+                    Ok(())
+                }
+                None => todo!(),
+            },
         }
+    }
+    fn var_assign(&mut self, key: &'de str, value: &EvaluatedValue) -> Result<(), String> {
+        // var <identifier> = expr;
+        // Only updates the current environment scope
+        self.data.insert(key, value.clone());
+        Ok(())
     }
 }
 
@@ -109,19 +123,19 @@ fn evaluate_statement<'de>(
         Stmt::Var(name, expr) => match expr {
             Some(v) => {
                 let evalutated_val = evaluate_expression(v, environment)?;
-                environment.assign(name, &evalutated_val)?;
+                environment.var_assign(name, &evalutated_val)?;
             }
             None => {
-                environment.assign(name, &EvaluatedValue::Nil)?;
+                environment.var_assign(name, &EvaluatedValue::Nil)?;
             }
         },
         Stmt::Block(stmts) => {
-            // TODO: Bug where Expr::Assign mutations to enclosing env are lost
-            // See `run_error_undefined_var.lox` for failure triggering source code example
-            let mut new_env = Environment::from_parent(environment);
+            let mut new_env = Environment::from_parent(environment.clone());
             for stmt in stmts {
                 evaluate_statement(stmt, &mut new_env)?;
             }
+            let e = new_env.enclosing.unwrap().borrow().clone();
+            *environment = e;
         }
     }
     Ok(())
@@ -277,25 +291,13 @@ fn evaluate_expression<'de>(
         Expr::Assign(name, expr) => match environment.get(name) {
             Some(_) => {
                 let eval_expr = evaluate_expression(*expr, environment)?;
-                // dbg!("ReAssigning: {name} to '{eval_expr}'");
-                // dbg!("{environment:?}");
-                // dbg!("{:?}", &environment.enclosing);
-                // if let Some(enc) = &mut environment.enclosing {
-                //     enc.assign(name, &eval_expr)?;
-                // } else {
-                //     environment.assign(name, &eval_expr)?;
-                // }
-                // environment
-                //     .enclosing
-                //     .as_mut()
-                //     .unwrap()
-                //     .assign(name, &eval_expr)?;
                 environment.assign(name, &eval_expr)?;
-                // dbg!("{environment:?}");
-                // dbg!("{:?}", environment.enclosing);
                 Ok(eval_expr)
             }
-            None => todo!(),
+            None => {
+                eprintln!("Undefined variable '{}'.", name);
+                Err("Undefined var".to_string())
+            }
         },
     }
 }
