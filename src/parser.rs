@@ -68,6 +68,8 @@ pub enum Stmt<'de> {
     Var(&'de str, Option<Expr<'de>>),
     /// Block
     Block(Vec<Stmt<'de>>),
+    /// If statement
+    If(Expr<'de>, Box<Stmt<'de>>, Option<Box<Stmt<'de>>>),
 }
 
 impl<'de> Iterator for Parser<'de> {
@@ -143,6 +145,9 @@ impl<'de> Parser<'de> {
     }
 
     fn statement(&mut self) -> Result<Stmt<'de>, String> {
+        if self.match_tokens(&[TokenType::If]) {
+            return self.if_statement();
+        }
         if self.match_tokens(&[TokenType::Print]) {
             return self.print_statement();
         }
@@ -151,6 +156,32 @@ impl<'de> Parser<'de> {
             return Ok(Stmt::Block(stmts));
         }
         self.expression_statement()
+    }
+
+    fn if_statement(&mut self) -> Result<Stmt<'de>, String> {
+        let token = self.peek();
+        self.consume(
+            TokenType::LeftParen,
+            token.origin,
+            token.line,
+            "Expect ')' after 'if'",
+        )?;
+        let condition = self.expression()?;
+        let token = self.peek();
+        self.consume(
+            TokenType::RightParen,
+            token.origin,
+            token.line,
+            "Expect ')' after if condition.",
+        )?;
+
+        let then_branch = self.statement()?;
+        let mut else_branch = None;
+        if self.match_tokens(&[TokenType::Else]) {
+            else_branch = Some(Box::new(self.statement()?));
+        }
+        let if_stmt = Stmt::If(condition, Box::new(then_branch), else_branch);
+        Ok(if_stmt)
     }
 
     fn block(&mut self) -> Result<Vec<Stmt<'de>>, String> {

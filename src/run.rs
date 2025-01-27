@@ -56,7 +56,6 @@ impl<'de> Environment<'de> {
     }
 
     fn assign(&mut self, key: &'de str, value: &EvaluatedValue) -> Result<(), String> {
-        // dbg!(&self.data);
         match self.data.get(key) {
             Some(_) => {
                 self.data.insert(key, value.clone());
@@ -116,6 +115,14 @@ fn evaluate_statement<'de>(
         Stmt::Print(expr) => {
             let val = evaluate_expression(expr, environment)?;
             println!("{}", val);
+        }
+        Stmt::If(cond, then_branch, else_branch) => {
+            let eval_cond = evaluate_expression(cond, environment)?;
+            if eval_cond.into() {
+                evaluate_statement(*then_branch, environment)?;
+            } else if let Some(e) = else_branch {
+                evaluate_statement(*e, environment)?;
+            }
         }
         Stmt::ExpressionStatement(expr) => {
             evaluate_expression(expr, environment)?;

@@ -1,7 +1,7 @@
-if (true) print "bar";
+if (true) print "bar";  // "bar"
 
 if (true) {
-  print "block body";
+  print "block body"; // "block body"
 }
 
 var a = false;
@@ -12,9 +12,9 @@ if (a = true) {
 var stage = "unknown";
 var age = 50;
 if (age < 18) { stage = "child"; }
-if (age >= 18) { stage = "adult"; }
-print stage;
+if (age >= 18) { stage = "adult"; } 
+print stage;  // "adult"
 
 var isAdult = age >= 18;
-if (isAdult) { print "eligible for voting: true"; }
+if (isAdult) { print "eligible for voting: true"; } // "eligible for voting: true"
 if (!isAdult) { print "eligible for voting: false"; }

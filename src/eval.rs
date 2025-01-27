@@ -23,6 +23,17 @@ pub enum EvaluatedValue {
     Bool(bool),
 }
 
+impl Into<bool> for EvaluatedValue {
+    fn into(self) -> bool {
+        match self {
+            EvaluatedValue::String(_) => true,
+            EvaluatedValue::Number(_) => true,
+            EvaluatedValue::Nil => false,
+            EvaluatedValue::Bool(b) => b,
+        }
+    }
+}
+
 impl Display for EvaluatedValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
