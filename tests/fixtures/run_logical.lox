@@ -1,0 +1,22 @@
+if (false or "ok") print "baz";
+if (nil or "ok") print "baz";
+
+if (false or false) print "world";
+if (true or "world") print "world";
+
+if (24 or "bar") print "bar";
+if ("bar" or "bar") print "bar";
+
+print 41 or true;
+print false or 41;
+print false or false or true;
+
+print false or false;
+print false or false or false;
+print true or true or true or true;
+
+var a = "hello";
+var b = "hello";
+(a = false) or (b = true) or (a = "hello");
+print a;
+print b;

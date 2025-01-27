@@ -306,5 +306,21 @@ fn evaluate_expression<'de>(
                 Err("Undefined var".to_string())
             }
         },
+        Expr::Logical {
+            left,
+            operator,
+            right,
+        } => {
+            let left_val = evaluate_expression(*left, environment)?;
+            let left_truth: bool = left_val.clone().into();
+            if operator.token_type == TokenType::Or {
+                if left_truth {
+                    return Ok(left_val);
+                }
+            } else if !left_truth {
+                return Ok(left_val);
+            }
+            Ok(evaluate_expression(*right, environment)?)
+        }
     }
 }

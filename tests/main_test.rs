@@ -148,6 +148,10 @@ fn test_run_no_file() {
 #[case("run", "true\ntrue\ntrue\nthe expression below is invalid\n3\nsomething\ntrue\ntrue\ntrue\nfalse\nnil\nnil\n98\n98\nbefore\nafter\nafter\nbefore
 inner world\nouter baz\nglobal quz\nouter world\nouter baz\nglobal quz\nglobal world\nglobal baz\nglobal quz\n", )]
 #[case("run_if", "bar\nblock body\ntrue\nadult\neligible for voting: true\n")]
+#[case(
+    "run_logical",
+    "baz\nbaz\nworld\nbar\nbar\n41\n41\ntrue\nfalse\nfalse\ntrue\nfalse\ntrue\n"
+)]
 fn test_run_with_file(#[case] file_name: &str, #[case] expected_stdout: &str) {
     let path = format!("tests/fixtures/{file_name}.lox");
     Command::cargo_bin("loxide")

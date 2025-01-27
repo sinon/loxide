@@ -23,9 +23,9 @@ pub enum EvaluatedValue {
     Bool(bool),
 }
 
-impl Into<bool> for EvaluatedValue {
-    fn into(self) -> bool {
-        match self {
+impl From<EvaluatedValue> for bool {
+    fn from(val: EvaluatedValue) -> Self {
+        match val {
             EvaluatedValue::String(_) => true,
             EvaluatedValue::Number(_) => true,
             EvaluatedValue::Nil => false,
