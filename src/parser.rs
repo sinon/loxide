@@ -164,6 +164,9 @@ impl<'de> Parser<'de> {
         if self.match_tokens(&[TokenType::While]) {
             return self.while_statement();
         }
+        if self.match_tokens(&[TokenType::For]) {
+            return self.for_statement();
+        }
         if self.match_tokens(&[TokenType::If]) {
             return self.if_statement();
         }
@@ -175,6 +178,62 @@ impl<'de> Parser<'de> {
             return Ok(Stmt::Block(stmts));
         }
         self.expression_statement()
+    }
+
+    fn for_statement(&mut self) -> Result<Stmt<'de>, String> {
+        let token = self.peek();
+        self.consume(
+            TokenType::LeftParen,
+            token.origin,
+            token.line,
+            "Expect '(' after 'for'",
+        )?;
+
+        let mut initializer: Option<Stmt> = None;
+        if self.match_tokens(&[TokenType::Semicolon]) {
+        } else if self.match_tokens(&[TokenType::Var]) {
+            initializer = Some(self.var_declaration()?);
+        } else {
+            initializer = Some(self.expression_statement()?);
+        }
+
+        let mut condition: Expr = Expr::Literal(LiteralAtom::Bool(true));
+        if !self.check(&TokenType::Semicolon) {
+            condition = self.expression()?;
+        }
+        let token = self.peek();
+        self.consume(
+            TokenType::Semicolon,
+            token.origin,
+            token.line,
+            "Expect ';' after loop condition.",
+        )?;
+
+        let mut increment: Option<Expr> = None;
+        if !self.check(&TokenType::RightParen) {
+            increment = Some(self.expression()?);
+        }
+        let token = self.peek();
+        self.consume(
+            TokenType::RightParen,
+            token.origin,
+            token.line,
+            "Expect ')' after for clauses.",
+        )?;
+
+        let mut body = self.statement()?;
+
+        if let Some(inc) = increment {
+            body = Stmt::Block(vec![body, Stmt::ExpressionStatement(inc)]);
+        };
+        body = Stmt::While {
+            condition,
+            body: Box::new(body),
+        };
+        if let Some(init) = initializer {
+            body = Stmt::Block(vec![init, body]);
+        };
+        Ok(body)
     }
 
     fn while_statement(&mut self) -> Result<Stmt<'de>, String> {

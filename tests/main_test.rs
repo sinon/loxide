@@ -156,6 +156,7 @@ inner world\nouter baz\nglobal quz\nouter world\nouter baz\nglobal quz\nglobal w
     "run_while",
     "1\n2\n3\n0\n1\n2\nProduct of numbers 1 to 5: \n120\n0\n1\n1\n2\n3\n5\n8\n13\n21\n34\n"
 )]
+#[case("run_for", "1\n2\n3\n0\n1\n2\n0\n1\n0\n1\n0\n-1\nafter\n0\n")]
 fn test_run_with_file(#[case] file_name: &str, #[case] expected_stdout: &str) {
     let path = format!("tests/fixtures/{file_name}.lox");
     Command::cargo_bin("loxide")
