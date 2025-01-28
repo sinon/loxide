@@ -96,7 +96,7 @@ impl Iterator for Run<'_> {
         let stmt = self.parser.next()?;
         match stmt {
             Ok(s) => {
-                let eval_stmt = evaluate_statement(s, &mut self.environment);
+                let eval_stmt = evaluate_statement(&s, &mut self.environment);
                 match eval_stmt {
                     Ok(_) => Some(Ok(())),
                     Err(_) => Some(Err(70)),
@@ -108,7 +108,7 @@ impl Iterator for Run<'_> {
 }
 
 fn evaluate_statement<'de>(
-    stmt: Stmt<'de>,
+    stmt: &Stmt<'de>,
     environment: &mut Environment<'de>,
 ) -> Result<(), String> {
     match stmt {
@@ -119,9 +119,9 @@ fn evaluate_statement<'de>(
         Stmt::If(cond, then_branch, else_branch) => {
             let eval_cond = evaluate_expression(cond, environment)?;
             if eval_cond.into() {
-                evaluate_statement(*then_branch, environment)?;
+                evaluate_statement(then_branch, environment)?;
             } else if let Some(e) = else_branch {
-                evaluate_statement(*e, environment)?;
+                evaluate_statement(e, environment)?;
             }
         }
         Stmt::ExpressionStatement(expr) => {
@@ -144,12 +144,18 @@ fn evaluate_statement<'de>(
             let e = new_env.enclosing.unwrap().borrow().clone();
             *environment = e;
         }
+        Stmt::While { condition, body } => loop {
+            if !(evaluate_expression(condition, environment)?.is_truthy()) {
+                break;
+            }
+            evaluate_statement(body, environment)?
+        },
     }
     Ok(())
 }
 
 fn evaluate_expression<'de>(
-    expr: Expr<'de>,
+    expr: &Expr<'de>,
     environment: &mut Environment<'de>,
 ) -> Result<EvaluatedValue, String> {
     match expr {
@@ -158,8 +164,8 @@ fn evaluate_expression<'de>(
             operator,
             right,
         } => {
-            let l_expr = evaluate_expression(*left, environment)?;
-            let r_expr = evaluate_expression(*right, environment)?;
+            let l_expr = evaluate_expression(left, environment)?;
+            let r_expr = evaluate_expression(right, environment)?;
             match operator.token_type {
                 TokenType::Minus
                 | TokenType::Star
@@ -241,7 +247,7 @@ fn evaluate_expression<'de>(
             }
         }
         Expr::Unary { operator, right } => {
-            let r = evaluate_expression(*right, environment);
+            let r = evaluate_expression(right, environment);
             if let (TokenType::Minus, Ok(e)) = (operator.token_type, &r) {
                 match e {
                     EvaluatedValue::Number(_) => {}
@@ -282,11 +288,11 @@ fn evaluate_expression<'de>(
         }
         Expr::Literal(literal_atom) => match literal_atom {
             LiteralAtom::String(s) => Ok(EvaluatedValue::String(s.to_string())),
-            LiteralAtom::Number(num) => Ok(EvaluatedValue::Number(num)),
+            LiteralAtom::Number(num) => Ok(EvaluatedValue::Number(*num)),
             LiteralAtom::Nil => Ok(EvaluatedValue::Nil),
-            LiteralAtom::Bool(b) => Ok(EvaluatedValue::Bool(b)),
+            LiteralAtom::Bool(b) => Ok(EvaluatedValue::Bool(*b)),
         },
-        Expr::Grouping(expr) => evaluate_expression(*expr, environment),
+        Expr::Grouping(expr) => evaluate_expression(expr, environment),
         Expr::Variable(token) => match environment.get(token.origin) {
             Some(v) => Ok(v),
             None => {
@@ -297,7 +303,7 @@ fn evaluate_expression<'de>(
         },
         Expr::Assign(name, expr) => match environment.get(name) {
             Some(_) => {
-                let eval_expr = evaluate_expression(*expr, environment)?;
+                let eval_expr = evaluate_expression(expr, environment)?;
                 environment.assign(name, &eval_expr)?;
                 Ok(eval_expr)
             }
@@ -311,7 +317,7 @@ fn evaluate_expression<'de>(
             operator,
             right,
         } => {
-            let left_val = evaluate_expression(*left, environment)?;
+            let left_val = evaluate_expression(left, environment)?;
             let left_truth: bool = left_val.clone().into();
             if operator.token_type == TokenType::Or {
                 if left_truth {
@@ -320,7 +326,7 @@ fn evaluate_expression<'de>(
             } else if !left_truth {
                 return Ok(left_val);
             }
-            Ok(evaluate_expression(*right, environment)?)
+            Ok(evaluate_expression(right, environment)?)
         }
     }
 }

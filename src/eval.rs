@@ -23,6 +23,17 @@ pub enum EvaluatedValue {
     Bool(bool),
 }
 
+impl EvaluatedValue {
+    pub(crate) fn is_truthy(&self) -> bool {
+        match self {
+            EvaluatedValue::String(_) => true,
+            EvaluatedValue::Number(_) => true,
+            EvaluatedValue::Nil => false,
+            EvaluatedValue::Bool(b) => *b,
+        }
+    }
+}
+
 impl From<EvaluatedValue> for bool {
     fn from(val: EvaluatedValue) -> Self {
         match val {

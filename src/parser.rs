@@ -79,6 +79,13 @@ pub enum Stmt<'de> {
     Block(Vec<Stmt<'de>>),
     /// If statement
     If(Expr<'de>, Box<Stmt<'de>>, Option<Box<Stmt<'de>>>),
+    /// While statement
+    While {
+        /// The condition that must be `true` for the body to be run
+        condition: Expr<'de>,
+        /// The statements that will be executed repreatedly if `condition`
+        body: Box<Stmt<'de>>,
+    },
 }
 
 impl<'de> Iterator for Parser<'de> {
@@ -154,6 +161,9 @@ impl<'de> Parser<'de> {
     }
 
     fn statement(&mut self) -> Result<Stmt<'de>, String> {
+        if self.match_tokens(&[TokenType::While]) {
+            return self.while_statement();
+        }
         if self.match_tokens(&[TokenType::If]) {
             return self.if_statement();
         }
@@ -165,6 +175,27 @@ impl<'de> Parser<'de> {
             return Ok(Stmt::Block(stmts));
         }
         self.expression_statement()
+    }
+
+    fn while_statement(&mut self) -> Result<Stmt<'de>, String> {
+        let token = self.peek();
+        self.consume(
+            TokenType::LeftParen,
+            token.origin,
+            token.line,
+            "Expect '(' after 'while'",
+        )?;
+        let condition = self.expression()?;
+        let token = self.peek();
+        self.consume(
+            TokenType::RightParen,
+            token.origin,
+            token.line,
+            "Expect ')' after condition",
+        )?;
+        let body = Box::new(self.statement()?);
+
+        Ok(Stmt::While { condition, body })
     }
 
     fn if_statement(&mut self) -> Result<Stmt<'de>, String> {
