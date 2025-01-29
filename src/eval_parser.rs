@@ -293,8 +293,12 @@ impl<'de> Parser<'de> {
         if self.is_at_end() {
             return false;
         }
-        std::mem::discriminant(&self.peek().unwrap().token_type)
-            == std::mem::discriminant(token_type)
+        std::mem::discriminant(
+            &self
+                .peek()
+                .expect("We have returned early if we are at end of token stream")
+                .token_type,
+        ) == std::mem::discriminant(token_type)
     }
 
     fn advance(&mut self) -> &Token<'de> {

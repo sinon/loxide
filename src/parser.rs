@@ -137,26 +137,14 @@ impl<'de> Parser<'de> {
     }
 
     fn var_declaration(&mut self) -> Result<Stmt<'de>, String> {
-        let token = self.peek();
         let name = self
-            .consume(
-                TokenType::Identifier,
-                token.origin,
-                token.line,
-                "Expect variable name.",
-            )?
+            .consume(&TokenType::Identifier, "Expect variable name.")?
             .origin;
         let mut intializer = None;
         if self.match_tokens(&[TokenType::Equal]) {
             intializer = Some(self.expression()?);
         }
-        let token = self.peek();
-        self.consume(
-            TokenType::Semicolon,
-            token.origin,
-            token.line,
-            "Expect ';' after value.",
-        )?;
+        self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Var(name, intializer))
     }
 
@@ -181,13 +169,7 @@ impl<'de> Parser<'de> {
     }
 
     fn for_statement(&mut self) -> Result<Stmt<'de>, String> {
-        let token = self.peek();
-        self.consume(
-            TokenType::LeftParen,
-            token.origin,
-            token.line,
-            "Expect '(' after 'for'",
-        )?;
+        self.consume(&TokenType::LeftParen, "Expect '(' after 'for'")?;
 
         let mut initializer: Option<Stmt> = None;
         if self.match_tokens(&[TokenType::Semicolon]) {
@@ -201,25 +183,13 @@ impl<'de> Parser<'de> {
         if !self.check(&TokenType::Semicolon) {
             condition = self.expression()?;
         }
-        let token = self.peek();
-        self.consume(
-            TokenType::Semicolon,
-            token.origin,
-            token.line,
-            "Expect ';' after loop condition.",
-        )?;
+        self.consume(&TokenType::Semicolon, "Expect ';' after loop condition.")?;
 
         let mut increment: Option<Expr> = None;
         if !self.check(&TokenType::RightParen) {
             increment = Some(self.expression()?);
         }
-        let token = self.peek();
-        self.consume(
-            TokenType::RightParen,
-            token.origin,
-            token.line,
-            "Expect ')' after for clauses.",
-        )?;
+        self.consume(&TokenType::RightParen, "Expect ')' after for clauses.")?;
 
         let mut body = self.statement()?;
 
@@ -237,42 +207,18 @@ impl<'de> Parser<'de> {
     }
 
     fn while_statement(&mut self) -> Result<Stmt<'de>, String> {
-        let token = self.peek();
-        self.consume(
-            TokenType::LeftParen,
-            token.origin,
-            token.line,
-            "Expect '(' after 'while'",
-        )?;
+        self.consume(&TokenType::LeftParen, "Expect '(' after 'while'")?;
         let condition = self.expression()?;
-        let token = self.peek();
-        self.consume(
-            TokenType::RightParen,
-            token.origin,
-            token.line,
-            "Expect ')' after condition",
-        )?;
+        self.consume(&TokenType::RightParen, "Expect ')' after condition")?;
         let body = Box::new(self.statement()?);
 
         Ok(Stmt::While { condition, body })
     }
 
     fn if_statement(&mut self) -> Result<Stmt<'de>, String> {
-        let token = self.peek();
-        self.consume(
-            TokenType::LeftParen,
-            token.origin,
-            token.line,
-            "Expect ')' after 'if'",
-        )?;
+        self.consume(&TokenType::LeftParen, "Expect ')' after 'if'")?;
         let condition = self.expression()?;
-        let token = self.peek();
-        self.consume(
-            TokenType::RightParen,
-            token.origin,
-            token.line,
-            "Expect ')' after if condition.",
-        )?;
+        self.consume(&TokenType::RightParen, "Expect ')' after if condition.")?;
 
         let then_branch = self.statement()?;
         let mut else_branch = None;
@@ -289,37 +235,19 @@ impl<'de> Parser<'de> {
             stmts.push(self.declaration()?)
         }
 
-        let token = self.peek();
-        self.consume(
-            TokenType::RightBrace,
-            token.origin,
-            token.line,
-            "Expect '}' after block.",
-        )?;
+        self.consume(&TokenType::RightBrace, "Expect '}' after block.")?;
         Ok(stmts)
     }
 
     fn expression_statement(&mut self) -> Result<Stmt<'de>, String> {
         let expr = self.expression()?;
-        let token = self.peek();
-        self.consume(
-            TokenType::Semicolon,
-            token.origin,
-            token.line,
-            "Expect ';' after value.",
-        )?;
+        self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::ExpressionStatement(expr))
     }
 
     fn print_statement(&mut self) -> Result<Stmt<'de>, String> {
         let expr = self.expression()?;
-        let token = self.peek();
-        self.consume(
-            TokenType::Semicolon,
-            token.origin,
-            token.line,
-            "Expect ';' after value.",
-        )?;
+        self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Print(expr))
     }
 
@@ -340,7 +268,7 @@ impl<'de> Parser<'de> {
                     return Ok(Expr::Assign(name, Box::new(value)));
                 }
                 _ => {
-                    let err_msg = self.error_msg(
+                    let err_msg = Self::error_msg(
                         &equals.token_type,
                         equals.origin,
                         equals.line,
@@ -362,7 +290,7 @@ impl<'de> Parser<'de> {
             let right = self.and()?;
             expr = Expr::Logical {
                 left: Box::new(expr),
-                operator: operator.clone(),
+                operator,
                 right: Box::new(right),
             };
         }
@@ -377,7 +305,7 @@ impl<'de> Parser<'de> {
             let right = self.equality()?;
             expr = Expr::Logical {
                 left: Box::new(expr),
-                operator: operator.clone(),
+                operator,
                 right: Box::new(right),
             }
         }
@@ -467,55 +395,32 @@ impl<'de> Parser<'de> {
     }
 
     fn primary(&mut self) -> Result<Expr<'de>, String> {
-        let token = self.peek();
-        let origin = token.origin;
-        let line_num = token.line;
+        let token = self.advance();
         match token.token_type {
-            TokenType::Number(n) => {
-                self.advance();
-                Ok(Expr::Literal(LiteralAtom::Number(n)))
-            }
-            TokenType::String => {
-                self.advance();
-                Ok(Expr::Literal(LiteralAtom::String(origin)))
-            }
-            TokenType::True => {
-                self.advance();
-                Ok(Expr::Literal(LiteralAtom::Bool(true)))
-            }
-            TokenType::False => {
-                self.advance();
-                Ok(Expr::Literal(LiteralAtom::Bool(false)))
-            }
-            TokenType::Nil => {
-                self.advance();
-                Ok(Expr::Literal(LiteralAtom::Nil))
-            }
+            TokenType::Number(n) => Ok(Expr::Literal(LiteralAtom::Number(n))),
+            TokenType::String => Ok(Expr::Literal(LiteralAtom::String(token.origin))),
+            TokenType::True => Ok(Expr::Literal(LiteralAtom::Bool(true))),
+            TokenType::False => Ok(Expr::Literal(LiteralAtom::Bool(false))),
+            TokenType::Nil => Ok(Expr::Literal(LiteralAtom::Nil)),
             TokenType::LeftParen => {
-                self.advance();
                 let expr = self.expression()?;
-                self.consume(
-                    TokenType::RightParen,
-                    origin,
-                    line_num,
-                    "Expect ')' after expression",
-                )?;
+                self.consume(&TokenType::RightParen, "Expect ')' after expression")?;
                 Ok(Expr::Grouping(Box::new(expr)))
             }
-            TokenType::Identifier => {
-                self.advance();
-                Ok(Expr::Variable(self.previous().clone()))
-            }
+            TokenType::Identifier => Ok(Expr::Variable(self.previous().clone())),
             _ => {
-                let err_msg = self
-                    .error_msg(&token.token_type, origin, line_num, "Expect expression")
-                    .to_string();
+                let err_msg = Self::error_msg(
+                    &token.token_type,
+                    token.origin,
+                    token.line,
+                    "Expect expression",
+                )
+                .to_string();
                 Err(err_msg)
             }
         }
     }
 
-    // Helper methods
     fn match_tokens(&mut self, types: &[TokenType]) -> bool {
         for t in types {
             if self.check(t) {
@@ -555,21 +460,21 @@ impl<'de> Parser<'de> {
         matches!(token.token_type, TokenType::Eof)
     }
 
-    fn consume(
-        &mut self,
-        token_type: TokenType,
-        origin: &str,
-        num: usize,
-        message: &str,
-    ) -> Result<&Token<'de>, String> {
-        if self.check(&token_type) {
+    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<&Token<'de>, String> {
+        if self.check(token_type) {
             Ok(self.advance())
         } else {
-            Err(self.error_msg(&token_type, origin, num, message))
+            let token = self.peek();
+            Err(Self::error_msg(
+                token_type,
+                token.origin,
+                token.line,
+                message,
+            ))
         }
     }
 
-    fn error_msg(&self, token_type: &TokenType, origin: &str, num: usize, message: &str) -> String {
+    fn error_msg(token_type: &TokenType, origin: &str, num: usize, message: &str) -> String {
         if *token_type == TokenType::Eof {
             format!("[line {}] Error at end: {}.", num, message)
         } else {

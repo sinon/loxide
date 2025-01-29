@@ -46,10 +46,7 @@ impl<'de> Environment<'de> {
         match self.data.get(key) {
             Some(v) => Some(v.clone()),
             None => match &self.enclosing {
-                Some(parent) => {
-                    let p = parent.borrow();
-                    p.get(key)
-                }
+                Some(parent) => parent.borrow().get(key),
                 None => None,
             },
         }
@@ -141,8 +138,11 @@ fn evaluate_statement<'de>(
             for stmt in stmts {
                 evaluate_statement(stmt, &mut new_env)?;
             }
-            let e = new_env.enclosing.unwrap().borrow().clone();
-            *environment = e;
+            *environment = new_env
+                .enclosing
+                .expect("`new_env` declared above will always have `enclosing` set")
+                .borrow()
+                .clone();
         }
         Stmt::While { condition, body } => loop {
             if !(evaluate_expression(condition, environment)?.is_truthy()) {
@@ -215,10 +215,7 @@ fn evaluate_expression<'de>(
                 }
                 (EvaluatedValue::String(s1), EvaluatedValue::String(s2), operator) => {
                     match operator.token_type {
-                        TokenType::Plus => {
-                            // let s3 = &((s1.to_owned() + s2).clone());
-                            Ok(EvaluatedValue::String(s1.to_owned() + &s2))
-                        }
+                        TokenType::Plus => Ok(EvaluatedValue::String(s1.to_owned() + &s2)),
                         TokenType::EqualEqual => Ok(EvaluatedValue::Bool(s1 == s2)),
                         TokenType::BangEqual => Ok(EvaluatedValue::Bool(s1 != s2)),
                         // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
@@ -318,7 +315,7 @@ fn evaluate_expression<'de>(
             right,
         } => {
             let left_val = evaluate_expression(left, environment)?;
-            let left_truth: bool = left_val.clone().into();
+            let left_truth: bool = left_val.is_truthy();
             if operator.token_type == TokenType::Or {
                 if left_truth {
                     return Ok(left_val);

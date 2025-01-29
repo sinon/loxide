@@ -286,35 +286,47 @@ impl<'de> Iterator for Lexer<'de> {
                                 }));
                             }
                         }
-                        Started::Number => loop {
-                            let next_num = chars.next();
-                            match next_num {
-                                Some((_, cn)) => {
-                                    if cn.is_numeric() {
-                                        c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
-                                        self.rest = chars.as_str();
-                                        self.byte += cn.len_utf8();
-                                        continue;
-                                    } else if cn == '.' {
-                                        if let Some((_, c_peek)) = chars.next() {
-                                            // 456. != 456.0 but unstead 456 DOT
-                                            if !c_peek.is_numeric() {
-                                                let num = c_str.parse().unwrap();
-                                                return Some(Ok(Token {
-                                                    token_type: TokenType::Number(num),
-                                                    origin: c_str,
-                                                    line: self.line_num,
-                                                }));
-                                            } else {
-                                                c_str = &c_onwards[at..c_str.len()
-                                                    + cn.len_utf8()
-                                                    + c_peek.len_utf8()];
-                                                self.rest = chars.as_str();
-                                                self.byte += cn.len_utf8() + c_peek.len_utf8();
+                        Started::Number => {
+                            loop {
+                                let next_num = chars.next();
+                                match next_num {
+                                    Some((_, cn)) => {
+                                        if cn.is_numeric() {
+                                            c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
+                                            self.rest = chars.as_str();
+                                            self.byte += cn.len_utf8();
+                                            continue;
+                                        } else if cn == '.' {
+                                            if let Some((_, c_peek)) = chars.next() {
+                                                // 456. != 456.0 but unstead 456 DOT
+                                                if !c_peek.is_numeric() {
+                                                    let num = c_str.parse().expect("We have called is_numeric on each char in `c_str`");
+                                                    return Some(Ok(Token {
+                                                        token_type: TokenType::Number(num),
+                                                        origin: c_str,
+                                                        line: self.line_num,
+                                                    }));
+                                                } else {
+                                                    c_str = &c_onwards[at..c_str.len()
+                                                        + cn.len_utf8()
+                                                        + c_peek.len_utf8()];
+                                                    self.rest = chars.as_str();
+                                                    self.byte += cn.len_utf8() + c_peek.len_utf8();
+                                                }
                                             }
+                                        } else {
+                                            let num: f64 = c_str.parse().expect("We have called is_numeric on each in char in `c_str`");
+                                            return Some(Ok(Token {
+                                                token_type: TokenType::Number(num),
+                                                origin: c_str,
+                                                line: self.line_num,
+                                            }));
                                         }
-                                    } else {
-                                        let num: f64 = c_str.parse().unwrap();
+                                    }
+                                    None => {
+                                        let num: f64 = c_str.parse().expect(
+                                            "We have called is_numeric on each in char in `c_str`",
+                                        );
                                         return Some(Ok(Token {
                                             token_type: TokenType::Number(num),
                                             origin: c_str,
@@ -322,16 +334,8 @@ impl<'de> Iterator for Lexer<'de> {
                                         }));
                                     }
                                 }
-                                None => {
-                                    let num: f64 = c_str.parse().unwrap();
-                                    return Some(Ok(Token {
-                                        token_type: TokenType::Number(num),
-                                        origin: c_str,
-                                        line: self.line_num,
-                                    }));
-                                }
                             }
-                        },
+                        }
                         Started::Identifier => loop {
                             let next_char = chars.next();
 
