@@ -174,8 +174,9 @@ fn test_run_with_file(#[case] file_name: &str, #[case] expected_stdout: &str) {
 
 #[rstest]
 #[case("run_error", "Operand must be a number.\n[line 1]\n", "", 70)]
+#[case("run_error_var", "Undefined variable 'x'.\n", "", 70)]
 #[case(
-    "run_error_assign",
+    "run_error_var_assign",
     "[line 1] Error at \';\': Expect expression.\n",
     "",
     65
