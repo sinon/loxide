@@ -149,7 +149,7 @@ fn test_run_no_file() {
 inner world\nouter baz\nglobal quz\nouter world\nouter baz\nglobal quz\nglobal world\nglobal baz\nglobal quz\n", )]
 #[case(
     "run_if",
-    "bar\nblock body\ntrue\nadult\neligible for voting: true\nif\n"
+    "bar\nblock body\ntrue\nadult\neligible for voting: true\nif\nelse\n"
 )]
 #[case(
     "run_logical",
@@ -173,16 +173,30 @@ fn test_run_with_file(#[case] file_name: &str, #[case] expected_stdout: &str) {
 }
 
 #[rstest]
-#[case("run_error", "Operand must be a number.\n[line 1]\n", "")]
+#[case("run_error", "Operand must be a number.\n[line 1]\n", "", 70)]
+#[case(
+    "run_error_assign",
+    "[line 1] Error at \';\': Expect expression.\n",
+    "",
+    65
+)]
 #[case(
     "run_error_undefined_var",
     "Undefined variable 'quz'.\n[line 17]\n",
-    "modified foo\ninner quz\nmodified foo\nouter quz\n"
+    "modified foo\ninner quz\nmodified foo\nouter quz\n",
+    70
+)]
+#[case(
+    "run_error_must_be_a_number",
+    "Operand must be a number.\n[line 1]\n",
+    "",
+    70
 )]
 fn test_run_with_file_error(
     #[case] file_name: &str,
     #[case] expected_err: &str,
     #[case] expected_stdout: &str,
+    #[case] expected_code: i32,
 ) {
     let err = expected_err.to_string();
     let out = expected_stdout.to_string();
@@ -193,7 +207,7 @@ fn test_run_with_file_error(
         .arg(path)
         .assert()
         .failure()
-        .code(70)
+        .code(expected_code)
         .stderr(err)
         .stdout(out);
 }
