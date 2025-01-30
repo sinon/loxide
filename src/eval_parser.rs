@@ -22,7 +22,7 @@ pub struct Parser<'de> {
 pub enum LiteralAtom<'de> {
     /// `String` literal for example `"foo"`
     String(&'de str),
-    /// Number literal for example `123.1``
+    /// Number literal for example `123.1`
     Number(f64),
     /// Nil literal
     Nil,
@@ -69,11 +69,11 @@ impl Display for Expr<'_> {
                 write!(f, "({} {} {})", operator.origin, left, right)
             }
             Expr::Grouping(exp) => {
-                write!(f, "(group {})", exp)
+                write!(f, "(group {exp})")
             }
             Expr::Literal(literal_atom) => match literal_atom {
-                LiteralAtom::String(cow) => write!(f, "{}", cow),
-                LiteralAtom::Number(num) => write!(f, "{:?}", num),
+                LiteralAtom::String(cow) => write!(f, "{cow}"),
+                LiteralAtom::Number(num) => write!(f, "{num:?}"),
                 LiteralAtom::Nil => write!(f, "nil"),
                 LiteralAtom::Bool(b) => write!(f, "{b:?}"),
             },
@@ -93,7 +93,7 @@ impl<'de> Iterator for Parser<'de> {
         match exp {
             Ok(e) => Some(Ok(e)),
             Err(err) => {
-                eprintln!("{}", err);
+                eprintln!("{err}");
                 self.parse_failed = true;
                 Some(Err(err))
             }
@@ -103,18 +103,15 @@ impl<'de> Iterator for Parser<'de> {
 
 impl<'de> Parser<'de> {
     /// Create new `Parser` from a lexed token stream
+    #[must_use]
     pub fn new(input: &'de str) -> Self {
         let mut tokens = Vec::<Token>::new();
         let mut has_lex_error = false;
         for token in Lexer::new(input) {
-            match token {
-                Ok(t) => {
-                    tokens.push(t);
-                }
-                Err(_) => {
-                    has_lex_error = true;
-                    continue;
-                }
+            if let Ok(t) = token {
+                tokens.push(t);
+            } else {
+                has_lex_error = true;
             }
         }
         Parser {
@@ -127,10 +124,7 @@ impl<'de> Parser<'de> {
     /// Parse the token stream, returning an `ExitCode` to indicate if the process
     /// encountered an error when running
     pub fn parse(&mut self) -> ExitCode {
-        let mut exit_code = 0;
-        if self.has_lex_error {
-            exit_code = 65;
-        }
+        let mut exit_code = if self.has_lex_error { 65 } else { 0 };
         for exp in self {
             match exp {
                 Ok(ex) => {
@@ -267,9 +261,8 @@ impl<'de> Parser<'de> {
                     Ok(Expr::Grouping(Box::new(expr)))
                 }
                 _ => {
-                    let err_msg = self
-                        .error_msg(&token.token_type, origin, line_num, "Expect expression")
-                        .to_string();
+                    let err_msg =
+                        Self::error_msg(&token.token_type, origin, line_num, "Expect expression");
                     Err(err_msg)
                 }
             }
@@ -317,11 +310,8 @@ impl<'de> Parser<'de> {
     }
 
     fn is_at_end(&self) -> bool {
-        if let Some(token) = self.peek() {
-            matches!(token.token_type, TokenType::Eof)
-        } else {
-            true
-        }
+        self.peek()
+            .map_or(true, |token| matches!(token.token_type, TokenType::Eof))
     }
 
     fn consume(
@@ -334,15 +324,15 @@ impl<'de> Parser<'de> {
         if self.check(&token_type) {
             Ok(self.advance())
         } else {
-            Err(self.error_msg(&token_type, origin, num, message))
+            Err(Self::error_msg(&token_type, origin, num, message))
         }
     }
 
-    fn error_msg(&self, token_type: &TokenType, origin: &str, num: usize, message: &str) -> String {
+    fn error_msg(token_type: &TokenType, origin: &str, num: usize, message: &str) -> String {
         if *token_type == TokenType::Eof {
-            format!("[line {}] Error at end: {}.", num, message)
+            format!("[line {num}] Error at end: {message}.")
         } else {
-            format!("[line {}] Error at '{}': {}.", num, origin, message)
+            format!("[line {num}] Error at '{origin}': {message}.")
         }
     }
 }

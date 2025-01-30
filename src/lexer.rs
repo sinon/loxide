@@ -116,6 +116,7 @@ impl fmt::Display for Token<'_> {
 
 /// `Lexer` is responsible for iterating over a input string and emitting `Token` for
 /// each detected `TokenType`. It maintains the following state:
+///
 /// `rest` - which is a reference to the substring of `whole` which remained to be lexed.
 /// `byte` - the current offset of the byte within the input string being lexed.
 /// `line_num` - the current line being processed by the lexer. 1-indexed, used for error reporting.
@@ -129,7 +130,8 @@ pub struct Lexer<'de> {
 
 impl<'de> Lexer<'de> {
     /// Create a new instance of `Lexer` for the given input str.
-    pub fn new(input: &'de str) -> Self {
+    #[must_use]
+    pub const fn new(input: &'de str) -> Self {
         Self {
             rest: input,
             whole: input,
@@ -152,7 +154,7 @@ impl<'de> Lexer<'de> {
         }
         ExitCode::from(exit_code)
     }
-    fn match_reserved_word(&mut self, c_str: &str) -> TokenType {
+    fn match_reserved_word(c_str: &str) -> TokenType {
         match c_str {
             "and" => TokenType::And,
             "class" => TokenType::Class,
@@ -175,6 +177,14 @@ impl<'de> Lexer<'de> {
     }
 }
 
+enum Started {
+    String,
+    Number,
+    Identifier,
+    IfNextEqual(TokenType, TokenType),
+    CodeComment,
+}
+
 impl<'de> Iterator for Lexer<'de> {
     type Item = Result<Token<'de>, Error>;
 
@@ -184,31 +194,22 @@ impl<'de> Iterator for Lexer<'de> {
         }
         loop {
             let mut chars = self.rest.char_indices();
-            match chars.next() {
-                Some(x) => {
-                    let (at, c) = x;
-                    let mut c_str = &self.rest[at..at + c.len_utf8()];
-                    let c_onwards = self.rest;
-                    self.rest = chars.as_str();
-                    self.byte += c.len_utf8();
+            if let Some(x) = chars.next() {
+                let (at, c) = x;
+                let mut c_str = &self.rest[at..at + c.len_utf8()];
+                let c_onwards = self.rest;
+                self.rest = chars.as_str();
+                self.byte += c.len_utf8();
 
-                    enum Started {
-                        String,
-                        Number,
-                        Identifier,
-                        IfNextEqual(TokenType, TokenType),
-                        CodeComment,
-                    }
+                let res = move |t_type: TokenType, line_num: usize| {
+                    Some(Ok(Token {
+                        token_type: t_type,
+                        origin: c_str,
+                        line: line_num,
+                    }))
+                };
 
-                    let res = move |t_type: TokenType, line_num: usize| {
-                        Some(Ok(Token {
-                            token_type: t_type,
-                            origin: c_str,
-                            line: line_num,
-                        }))
-                    };
-
-                    let started = match c {
+                let started = match c {
                 '(' => return res(TokenType::LeftParen, self.line_num),
                 ')' => return res(TokenType::RightParen, self.line_num),
                 '{' => return res(TokenType::LeftBrace, self.line_num),
@@ -221,8 +222,7 @@ impl<'de> Iterator for Lexer<'de> {
                 ';' => return res(TokenType::Semicolon, self.line_num),
                 '"' => Started::String,
                 '0'..='9' => Started::Number,
-                'a'..='z' | 'A'..='Z' => Started::Identifier,
-                '_' => Started::Identifier,
+                'a'..='z' | 'A'..='Z' | '_' => Started::Identifier,
                 '<' => Started::IfNextEqual(TokenType::LessEqual, TokenType::Less),
                 '>' => Started::IfNextEqual(TokenType::GreaterEqual, TokenType::Greater),
                 '!' => Started::IfNextEqual(TokenType::BangEqual, TokenType::Bang),
@@ -242,80 +242,66 @@ impl<'de> Iterator for Lexer<'de> {
                         ))
                     }
             };
-
-                    match started {
-                        Started::CodeComment => {
-                            if self.rest.starts_with("/") {
-                                let eol = self.rest.find("\n");
-                                match eol {
-                                    Some(idx) => {
-                                        self.byte += idx;
-                                        self.rest = &self.rest[idx..];
-                                    }
-                                    None => {
-                                        self.byte = self.whole.len();
-                                        self.rest = &self.rest[self.rest.len()..self.rest.len()];
-                                    }
-                                }
+                match started {
+                    Started::CodeComment => {
+                        if self.rest.starts_with('/') {
+                            let eol = self.rest.find('\n');
+                            if let Some(idx) = eol {
+                                self.byte += idx;
+                                self.rest = &self.rest[idx..];
                             } else {
-                                return Some(Ok(Token {
-                                    token_type: TokenType::Slash,
-                                    origin: c_str,
-                                    line: self.line_num,
-                                }));
-                            }
-                        }
-                        Started::String => {
-                            if !self.rest.contains('"') {
-                                // Scan to end, we cannot continue to scan for tokens when in an unterminated string
                                 self.byte = self.whole.len();
                                 self.rest = &self.rest[self.rest.len()..self.rest.len()];
-                                return Some(Err(
-                        miette! {labels = vec![LabeledSpan::at(self.byte -c.len_utf8()..self.byte, "this unterminated string")],
-                        "[line {}] Error: Unterminated string.", self.line_num}.with_source_code(self.whole.to_string())
-                    ));
-                            } else {
-                                let (s, _) = self.rest.split_once("\"")?;
-                                let c_str = &c_onwards[1..s.len() + 1];
-                                self.byte += s.len() + 1;
-                                self.rest = &self.rest[s.len() + 1..];
-                                return Some(Ok(Token {
-                                    token_type: TokenType::String,
-                                    origin: c_str,
-                                    line: self.line_num,
-                                }));
                             }
+                        } else {
+                            return Some(Ok(Token {
+                                token_type: TokenType::Slash,
+                                origin: c_str,
+                                line: self.line_num,
+                            }));
                         }
-                        Started::Number => {
-                            loop {
-                                let next_num = chars.next();
-                                match next_num {
-                                    Some((_, cn)) => {
-                                        if cn.is_numeric() {
-                                            c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
+                    }
+                    Started::String => {
+                        if self.rest.contains('"') {
+                            let (s, _) = self.rest.split_once('"')?;
+                            let c_str = &c_onwards[1..=s.len()];
+                            self.byte += s.len() + 1;
+                            self.rest = &self.rest[s.len() + 1..];
+                            return Some(Ok(Token {
+                                token_type: TokenType::String,
+                                origin: c_str,
+                                line: self.line_num,
+                            }));
+                        }
+                        // Scan to end, we cannot continue to scan for tokens when in an unterminated string
+                        self.byte = self.whole.len();
+                        self.rest = &self.rest[self.rest.len()..self.rest.len()];
+                        return Some(Err(
+                            miette! {labels = vec![LabeledSpan::at(self.byte -c.len_utf8()..self.byte, "this unterminated string")],
+                            "[line {}] Error: Unterminated string.", self.line_num}.with_source_code(self.whole.to_string())
+                        ));
+                    }
+                    Started::Number => {
+                        loop {
+                            let next_num = chars.next();
+                            if let Some((_, cn)) = next_num {
+                                if cn.is_numeric() {
+                                    c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
+                                    self.rest = chars.as_str();
+                                    self.byte += cn.len_utf8();
+                                } else if cn == '.' {
+                                    if let Some((_, c_peek)) = chars.next() {
+                                        // 456. != 456.0 but unstead 456 DOT
+                                        if c_peek.is_numeric() {
+                                            c_str = &c_onwards[at..c_str.len()
+                                                + cn.len_utf8()
+                                                + c_peek.len_utf8()];
                                             self.rest = chars.as_str();
-                                            self.byte += cn.len_utf8();
-                                            continue;
-                                        } else if cn == '.' {
-                                            if let Some((_, c_peek)) = chars.next() {
-                                                // 456. != 456.0 but unstead 456 DOT
-                                                if !c_peek.is_numeric() {
-                                                    let num = c_str.parse().expect("We have called is_numeric on each char in `c_str`");
-                                                    return Some(Ok(Token {
-                                                        token_type: TokenType::Number(num),
-                                                        origin: c_str,
-                                                        line: self.line_num,
-                                                    }));
-                                                } else {
-                                                    c_str = &c_onwards[at..c_str.len()
-                                                        + cn.len_utf8()
-                                                        + c_peek.len_utf8()];
-                                                    self.rest = chars.as_str();
-                                                    self.byte += cn.len_utf8() + c_peek.len_utf8();
-                                                }
-                                            }
+                                            self.byte += cn.len_utf8() + c_peek.len_utf8();
                                         } else {
-                                            let num: f64 = c_str.parse().expect("We have called is_numeric on each in char in `c_str`");
+                                            let num = c_str.parse().expect(
+                                                "We have called is_numeric on each char in `c_str`",
+                                            );
                                             return Some(Ok(Token {
                                                 token_type: TokenType::Number(num),
                                                 origin: c_str,
@@ -323,86 +309,87 @@ impl<'de> Iterator for Lexer<'de> {
                                             }));
                                         }
                                     }
-                                    None => {
-                                        let num: f64 = c_str.parse().expect(
-                                            "We have called is_numeric on each in char in `c_str`",
-                                        );
-                                        return Some(Ok(Token {
-                                            token_type: TokenType::Number(num),
-                                            origin: c_str,
-                                            line: self.line_num,
-                                        }));
-                                    }
-                                }
-                            }
-                        }
-                        Started::Identifier => loop {
-                            let next_char = chars.next();
-
-                            match next_char {
-                                Some((_, cn)) => {
-                                    if cn == ' ' || cn == '\n' {
-                                        let token_type = self.match_reserved_word(c_str);
-                                        return Some(Ok(Token {
-                                            token_type,
-                                            origin: c_str,
-                                            line: self.line_num,
-                                        }));
-                                    }
-                                    if cn.is_alphanumeric() || cn == '_' {
-                                        c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
-                                        self.rest = chars.as_str();
-                                        self.byte += cn.len_utf8();
-                                        continue;
-                                    } else {
-                                        let token_type = self.match_reserved_word(c_str);
-                                        return Some(Ok(Token {
-                                            token_type,
-                                            origin: c_str,
-                                            line: self.line_num,
-                                        }));
-                                    }
-                                }
-                                None => {
-                                    let token_type = self.match_reserved_word(c_str);
+                                } else {
+                                    let num: f64 = c_str.parse().expect(
+                                        "We have called is_numeric on each in char in `c_str`",
+                                    );
                                     return Some(Ok(Token {
-                                        token_type,
+                                        token_type: TokenType::Number(num),
                                         origin: c_str,
                                         line: self.line_num,
                                     }));
                                 }
-                            }
-                        },
-                        Started::IfNextEqual(then, else_t) => {
-                            if self.rest.starts_with("=") {
-                                let c_str = &c_onwards[..2];
-                                self.byte += 1;
-                                self.rest = &self.rest[1..];
-                                let token = Token {
-                                    token_type: then,
-                                    origin: c_str,
-                                    line: self.line_num,
-                                };
-                                return Some(Ok(token));
                             } else {
-                                let token = Token {
-                                    token_type: else_t,
+                                let num: f64 = c_str
+                                    .parse()
+                                    .expect("We have called is_numeric on each in char in `c_str`");
+                                return Some(Ok(Token {
+                                    token_type: TokenType::Number(num),
                                     origin: c_str,
                                     line: self.line_num,
-                                };
-                                return Some(Ok(token));
+                                }));
                             }
                         }
-                    };
-                }
-                None => {
-                    self.at_eof = true;
-                    return Some(Ok(Token {
-                        token_type: TokenType::Eof,
-                        origin: "",
-                        line: self.line_num,
-                    }));
-                }
+                    }
+                    Started::Identifier => loop {
+                        let next_char = chars.next();
+
+                        if let Some((_, cn)) = next_char {
+                            if cn == ' ' || cn == '\n' {
+                                let token_type = Self::match_reserved_word(c_str);
+                                return Some(Ok(Token {
+                                    token_type,
+                                    origin: c_str,
+                                    line: self.line_num,
+                                }));
+                            }
+                            if cn.is_alphanumeric() || cn == '_' {
+                                c_str = &c_onwards[at..c_str.len() + cn.len_utf8()];
+                                self.rest = chars.as_str();
+                                self.byte += cn.len_utf8();
+                                continue;
+                            }
+                            let token_type = Self::match_reserved_word(c_str);
+                            return Some(Ok(Token {
+                                token_type,
+                                origin: c_str,
+                                line: self.line_num,
+                            }));
+                        }
+                        let token_type = Self::match_reserved_word(c_str);
+                        return Some(Ok(Token {
+                            token_type,
+                            origin: c_str,
+                            line: self.line_num,
+                        }));
+                    },
+                    Started::IfNextEqual(then, else_t) => {
+                        if self.rest.starts_with('=') {
+                            let c_str = &c_onwards[..2];
+                            self.byte += 1;
+                            self.rest = &self.rest[1..];
+                            let token = Token {
+                                token_type: then,
+                                origin: c_str,
+                                line: self.line_num,
+                            };
+                            return Some(Ok(token));
+                        }
+                        let token = Token {
+                            token_type: else_t,
+                            origin: c_str,
+                            line: self.line_num,
+                        };
+                        return Some(Ok(token));
+                    }
+                };
+            } else {
+                self.at_eof = true;
+                return Some(Ok(Token {
+                    token_type: TokenType::Eof,
+                    origin: "",
+                    line: self.line_num,
+                }));
             }
         }
     }

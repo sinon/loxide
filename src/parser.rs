@@ -19,7 +19,7 @@ pub struct Parser<'de> {
 pub enum LiteralAtom<'de> {
     /// `String` literal for example `"foo"`
     String(&'de str),
-    /// Number literal for example `123.1``
+    /// Number literal for example `123.1`
     Number(f64),
     /// Nil literal
     Nil,
@@ -100,7 +100,7 @@ impl<'de> Iterator for Parser<'de> {
         match stmt {
             Ok(s) => Some(Ok(s)),
             Err(err) => {
-                eprintln!("{}", err);
+                eprintln!("{err}");
                 self.parse_failed = true;
                 Some(Err(err))
             }
@@ -110,18 +110,9 @@ impl<'de> Iterator for Parser<'de> {
 
 impl<'de> Parser<'de> {
     /// Create new `Parser` from a lexed token stream
+    #[must_use]
     pub fn new(input: &'de str) -> Self {
-        let mut tokens = Vec::<Token>::new();
-        for token in Lexer::new(input) {
-            match token {
-                Ok(t) => {
-                    tokens.push(t);
-                }
-                Err(_) => {
-                    continue;
-                }
-            }
-        }
+        let tokens: Vec<Token<'_>> = Lexer::new(input).flatten().collect();
         Parser {
             tokens,
             current: 0,
@@ -140,10 +131,11 @@ impl<'de> Parser<'de> {
         let name = self
             .consume(&TokenType::Identifier, "Expect variable name.")?
             .origin;
-        let mut intializer = None;
-        if self.match_tokens(&[TokenType::Equal]) {
-            intializer = Some(self.expression()?);
-        }
+        let intializer = if self.match_tokens(&[TokenType::Equal]) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
         self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Var(name, intializer))
     }
@@ -179,16 +171,18 @@ impl<'de> Parser<'de> {
             initializer = Some(self.expression_statement()?);
         }
 
-        let mut condition: Expr = Expr::Literal(LiteralAtom::Bool(true));
-        if !self.check(&TokenType::Semicolon) {
-            condition = self.expression()?;
-        }
+        let condition = if self.check(&TokenType::Semicolon) {
+            Expr::Literal(LiteralAtom::Bool(true))
+        } else {
+            self.expression()?
+        };
         self.consume(&TokenType::Semicolon, "Expect ';' after loop condition.")?;
 
-        let mut increment: Option<Expr> = None;
-        if !self.check(&TokenType::RightParen) {
-            increment = Some(self.expression()?);
-        }
+        let increment = if self.check(&TokenType::RightParen) {
+            None
+        } else {
+            Some(self.expression()?)
+        };
         self.consume(&TokenType::RightParen, "Expect ')' after for clauses.")?;
 
         let mut body = self.statement()?;
@@ -221,10 +215,11 @@ impl<'de> Parser<'de> {
         self.consume(&TokenType::RightParen, "Expect ')' after if condition.")?;
 
         let then_branch = self.statement()?;
-        let mut else_branch = None;
-        if self.match_tokens(&[TokenType::Else]) {
-            else_branch = Some(Box::new(self.statement()?));
-        }
+        let else_branch = if self.match_tokens(&[TokenType::Else]) {
+            Some(Box::new(self.statement()?))
+        } else {
+            None
+        };
         let if_stmt = Stmt::If(condition, Box::new(then_branch), else_branch);
         Ok(if_stmt)
     }
@@ -232,7 +227,7 @@ impl<'de> Parser<'de> {
     fn block(&mut self) -> Result<Vec<Stmt<'de>>, String> {
         let mut stmts: Vec<Stmt<'de>> = Vec::new();
         while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
-            stmts.push(self.declaration()?)
+            stmts.push(self.declaration()?);
         }
 
         self.consume(&TokenType::RightBrace, "Expect '}' after block.")?;
@@ -262,21 +257,17 @@ impl<'de> Parser<'de> {
             let equals = self.previous().clone();
             let value = self.assignment()?;
 
-            match expr {
-                Expr::Variable(token) => {
-                    let name = token.origin;
-                    return Ok(Expr::Assign(name, Box::new(value)));
-                }
-                _ => {
-                    let err_msg = Self::error_msg(
-                        &equals.token_type,
-                        equals.origin,
-                        equals.line,
-                        "Invalid assignment type.",
-                    );
-                    return Err(err_msg.to_string());
-                }
+            if let Expr::Variable(token) = expr {
+                let name = token.origin;
+                return Ok(Expr::Assign(name, Box::new(value)));
             }
+            let err_msg = Self::error_msg(
+                &equals.token_type,
+                equals.origin,
+                equals.line,
+                "Invalid assignment type.",
+            );
+            return Err(err_msg);
         }
 
         Ok(expr)
@@ -414,8 +405,7 @@ impl<'de> Parser<'de> {
                     token.origin,
                     token.line,
                     "Expect expression",
-                )
-                .to_string();
+                );
                 Err(err_msg)
             }
         }
@@ -476,9 +466,9 @@ impl<'de> Parser<'de> {
 
     fn error_msg(token_type: &TokenType, origin: &str, num: usize, message: &str) -> String {
         if *token_type == TokenType::Eof {
-            format!("[line {}] Error at end: {}.", num, message)
+            format!("[line {num}] Error at end: {message}.")
         } else {
-            format!("[line {}] Error at '{}': {}.", num, origin, message)
+            format!("[line {num}] Error at '{origin}': {message}.")
         }
     }
 }
