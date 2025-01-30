@@ -63,7 +63,7 @@ pub enum TokenType {
     True,
     Var,
     While,
-    // // Misc
+    // Misc
     Eof,
 }
 

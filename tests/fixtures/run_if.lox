@@ -18,3 +18,8 @@ print stage;  // "adult"
 var isAdult = age >= 18;
 if (isAdult) { print "eligible for voting: true"; } // "eligible for voting: true"
 if (!isAdult) { print "eligible for voting: false"; }
+if (1 > 2 and 1 != 2 or 1 < 3) {
+    print "if";
+} else {
+    print "else";
+}
