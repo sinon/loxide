@@ -382,7 +382,7 @@ impl<'de> Iterator for Lexer<'de> {
                         };
                         return Some(Ok(token));
                     }
-                };
+                }
             } else {
                 self.at_eof = true;
                 return Some(Ok(Token {

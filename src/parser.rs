@@ -189,14 +189,14 @@ impl<'de> Parser<'de> {
 
         if let Some(inc) = increment {
             body = Stmt::Block(vec![body, Stmt::ExpressionStatement(inc)]);
-        };
+        }
         body = Stmt::While {
             condition,
             body: Box::new(body),
         };
         if let Some(init) = initializer {
             body = Stmt::Block(vec![init, body]);
-        };
+        }
         Ok(body)
     }
 
