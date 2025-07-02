@@ -46,7 +46,7 @@ fn main() -> Result<ExitCode> {
             let mut exit_code = 0;
             for res in Eval::new(&input) {
                 match res {
-                    Ok(r) => println!("{}", r),
+                    Ok(r) => println!("{r}"),
                     Err(_) => exit_code = 70,
                 }
             }
@@ -59,7 +59,7 @@ fn main() -> Result<ExitCode> {
             let mut exit_code = 0;
             for res in Run::new(&input) {
                 match res {
-                    Ok(_) => {}
+                    Ok(()) => {}
                     Err(err_code) => {
                         exit_code = err_code;
                         break;

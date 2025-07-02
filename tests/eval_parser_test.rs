@@ -19,10 +19,10 @@ macro_rules! set_snapshot_suffix {
 fn test_parser_literals(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let exprs: Vec<String> = Parser::new(input)
-        .take_while(|x| x.is_ok())
+        .take_while(std::result::Result::is_ok)
         .map(|e| match e {
-            Ok(exp) => format!("{}", exp),
-            Err(_) => "".to_string(),
+            Ok(exp) => format!("{exp}"),
+            Err(_) => String::new(),
         })
         .collect();
     assert_snapshot!(exprs.join("\n"));
@@ -35,10 +35,10 @@ fn test_parser_literals(#[case] input: &str) {
 fn test_parser_parentheses(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let exprs: Vec<String> = Parser::new(input)
-        .take_while(|x| x.is_ok())
+        .take_while(std::result::Result::is_ok)
         .map(|e| match e {
-            Ok(exp) => format!("{}", exp),
-            Err(_) => "".to_string(),
+            Ok(exp) => format!("{exp}"),
+            Err(_) => String::new(),
         })
         .collect();
     assert_snapshot!(exprs.join("\n"));
@@ -51,10 +51,10 @@ fn test_parser_parentheses(#[case] input: &str) {
 fn test_parser_unary(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let exprs: Vec<String> = Parser::new(input)
-        .take_while(|x| x.is_ok())
+        .take_while(std::result::Result::is_ok)
         .map(|e| match e {
-            Ok(exp) => format!("{}", exp),
-            Err(_) => "".to_string(),
+            Ok(exp) => format!("{exp}"),
+            Err(_) => String::new(),
         })
         .collect();
     insta::with_settings!({
@@ -71,10 +71,10 @@ fn test_parser_unary(#[case] input: &str) {
 fn test_parser_arimethic(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let exprs: Vec<String> = Parser::new(input)
-        .take_while(|x| x.is_ok())
+        .take_while(std::result::Result::is_ok)
         .map(|e| match e {
-            Ok(exp) => format!("{}", exp),
-            Err(_) => "".to_string(),
+            Ok(exp) => format!("{exp}"),
+            Err(_) => String::new(),
         })
         .collect();
     assert_snapshot!(exprs.join("\n"));
@@ -86,10 +86,10 @@ fn test_parser_arimethic(#[case] input: &str) {
 fn test_parser_comparison(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let exprs: Vec<String> = Parser::new(input)
-        .take_while(|x| x.is_ok())
+        .take_while(std::result::Result::is_ok)
         .map(|e| match e {
-            Ok(exp) => format!("{}", exp),
-            Err(_) => "".to_string(),
+            Ok(exp) => format!("{exp}"),
+            Err(_) => String::new(),
         })
         .collect();
 
@@ -107,10 +107,10 @@ fn test_parser_comparison(#[case] input: &str) {
 fn test_parser_equality(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let exprs: Vec<String> = Parser::new(input)
-        .take_while(|x| x.is_ok())
+        .take_while(std::result::Result::is_ok)
         .map(|e| match e {
-            Ok(exp) => format!("{}", exp),
-            Err(_) => "".to_string(),
+            Ok(exp) => format!("{exp}"),
+            Err(_) => String::new(),
         })
         .collect();
     assert_snapshot!(exprs.join("\n"));

@@ -32,7 +32,7 @@ impl<'de> Environment<'de> {
         }
     }
 
-    fn from_parent(enclosing: Environment<'de>) -> Self {
+    fn from_parent(enclosing: Self) -> Self {
         Environment {
             data: HashMap::new(),
             enclosing: Some(Rc::new(RefCell::new(enclosing))),
@@ -81,6 +81,7 @@ impl<'de> Environment<'de> {
 
 impl<'de> Run<'de> {
     /// Create a new `Run` to process a given input source code
+    #[must_use]
     pub fn new(input: &'de str) -> Self {
         Run {
             parser: Parser::new(input),
@@ -98,7 +99,7 @@ impl Iterator for Run<'_> {
             Ok(s) => {
                 let eval_stmt = evaluate_statement(&s, &mut self.environment);
                 match eval_stmt {
-                    Ok(_) => Some(Ok(())),
+                    Ok(()) => Some(Ok(())),
                     Err(_) => Some(Err(70)),
                 }
             }
@@ -114,7 +115,7 @@ fn evaluate_statement<'de>(
     match stmt {
         Stmt::Print(expr) => {
             let val = evaluate_expression(expr, environment)?;
-            println!("{}", val);
+            println!("{val}");
         }
         Stmt::If(cond, then_branch, else_branch) => {
             let eval_cond = evaluate_expression(cond, environment)?;
@@ -148,7 +149,7 @@ fn evaluate_statement<'de>(
             if !(evaluate_expression(condition, environment)?.is_truthy()) {
                 break;
             }
-            evaluate_statement(body, environment)?
+            evaluate_statement(body, environment)?;
         },
     }
     Ok(())
@@ -173,14 +174,16 @@ fn evaluate_expression<'de>(
                 | TokenType::Greater
                 | TokenType::GreaterEqual
                 | TokenType::Less
-                | TokenType::LessEqual => match (&l_expr, &r_expr) {
-                    (EvaluatedValue::Number(_), EvaluatedValue::Number(_)) => {}
-                    _ => {
+                | TokenType::LessEqual => {
+                    if let (EvaluatedValue::Number(_), EvaluatedValue::Number(_)) =
+                        (&l_expr, &r_expr)
+                    {
+                    } else {
                         eprintln!("Operand must be a number.");
                         eprintln!("[line {}]", operator.line);
                         return Err("Operand must be a number".to_string());
                     }
-                },
+                }
                 TokenType::Plus => match (&l_expr, &r_expr) {
                     (EvaluatedValue::Number(_), EvaluatedValue::Number(_))
                     | (EvaluatedValue::String(_), EvaluatedValue::String(_)) => {}
@@ -207,24 +210,20 @@ fn evaluate_expression<'de>(
                         TokenType::EqualEqual => Ok(EvaluatedValue::Bool(n1 == n2)),
                         TokenType::BangEqual => Ok(EvaluatedValue::Bool(n1 != n2)),
                         // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
-                        _ => panic!(
-                            "{} is not a valid token type for Expr::Binary with Numbers",
-                            op
-                        ),
+                        _ => panic!("{op} is not a valid token type for Expr::Binary with Numbers"),
                     }
                 }
                 (EvaluatedValue::String(s1), EvaluatedValue::String(s2), operator) => {
                     match operator.token_type {
                         TokenType::Plus => {
                             // let s3 = &((s1.to_owned() + s2).clone());
-                            Ok(EvaluatedValue::String(s1.to_owned() + &s2))
+                            Ok(EvaluatedValue::String(s1 + &s2))
                         }
                         TokenType::EqualEqual => Ok(EvaluatedValue::Bool(s1 == s2)),
                         TokenType::BangEqual => Ok(EvaluatedValue::Bool(s1 != s2)),
                         // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
                         _ => panic!(
-                            "{} is not a valid token type for Expr:Binary with Strings",
-                            operator
+                            "{operator} is not a valid token type for Expr:Binary with Strings"
                         ),
                     }
                 }
@@ -233,14 +232,14 @@ fn evaluate_expression<'de>(
                     match operator.token_type {
                         TokenType::EqualEqual => Ok(EvaluatedValue::Bool(false)),
                         TokenType::BangEqual => Ok(EvaluatedValue::Bool(true)),
-                        _ => panic!("{} is not supported for String<>Number", operator),
+                        _ => panic!("{operator} is not supported for String<>Number"),
                     }
                 }
                 (EvaluatedValue::Bool(b1), EvaluatedValue::Bool(b2), operator) => {
                     match operator.token_type {
                         TokenType::BangEqual => Ok(EvaluatedValue::Bool(b1 != b2)),
                         TokenType::EqualEqual => Ok(EvaluatedValue::Bool(b1 == b2)),
-                        _ => panic!("{} is not for suppoer Bool / Bool binary", operator),
+                        _ => panic!("{operator} is not for suppoer Bool / Bool binary"),
                     }
                 }
                 (l, r, op) => todo!("Add handling for {l} {r} {op}"),
@@ -249,13 +248,11 @@ fn evaluate_expression<'de>(
         Expr::Unary { operator, right } => {
             let r = evaluate_expression(right, environment);
             if let (TokenType::Minus, Ok(e)) = (operator.token_type, &r) {
-                match e {
-                    EvaluatedValue::Number(_) => {}
-                    _ => {
-                        eprintln!("Operand must be a number.");
-                        eprintln!("[line {}]", operator.line);
-                        return Err("Operand must be a number".to_string());
-                    }
+                if let EvaluatedValue::Number(_) = e {
+                } else {
+                    eprintln!("Operand must be a number.");
+                    eprintln!("[line {}]", operator.line);
+                    return Err("Operand must be a number".to_string());
                 }
             }
             match operator.token_type {
@@ -287,31 +284,31 @@ fn evaluate_expression<'de>(
             }
         }
         Expr::Literal(literal_atom) => match literal_atom {
-            LiteralAtom::String(s) => Ok(EvaluatedValue::String(s.to_string())),
+            LiteralAtom::String(s) => Ok(EvaluatedValue::String((*s).to_string())),
             LiteralAtom::Number(num) => Ok(EvaluatedValue::Number(*num)),
             LiteralAtom::Nil => Ok(EvaluatedValue::Nil),
             LiteralAtom::Bool(b) => Ok(EvaluatedValue::Bool(*b)),
         },
         Expr::Grouping(expr) => evaluate_expression(expr, environment),
-        Expr::Variable(token) => match environment.get(token.origin) {
-            Some(v) => Ok(v),
-            None => {
+        Expr::Variable(token) => {
+            if let Some(v) = environment.get(token.origin) {
+                Ok(v)
+            } else {
                 eprintln!("Undefined variable '{}'.", token.origin);
                 eprintln!("[line {}]", token.line);
                 Err("Undefined var".to_string())
             }
-        },
-        Expr::Assign(name, expr) => match environment.get(name) {
-            Some(_) => {
+        }
+        Expr::Assign(name, expr) => {
+            if environment.get(name).is_some() {
                 let eval_expr = evaluate_expression(expr, environment)?;
                 environment.assign(name, &eval_expr)?;
                 Ok(eval_expr)
-            }
-            None => {
-                eprintln!("Undefined variable '{}'.", name);
+            } else {
+                eprintln!("Undefined variable '{name}'.");
                 Err("Undefined var".to_string())
             }
-        },
+        }
         Expr::Logical {
             left,
             operator,

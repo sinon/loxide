@@ -8,7 +8,7 @@ fn test_identifiers() {
 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
     let output = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{:}", x))
+        .map(|x| format!("{x:}"))
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -23,7 +23,7 @@ fn test_keywords() {
     let input = "and class else false for fun if nil or return super this true var while print";
     let output = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{}", x))
+        .map(|x| format!("{x}"))
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -43,7 +43,7 @@ fn test_numbers() {
 523.";
     let out = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{}", x))
+        .map(|x| format!("{x}"))
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -58,7 +58,7 @@ fn test_punctuators() {
     let input = "(){};,+-*!===<=>=!=<>/.=!";
     let out = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{}", x))
+        .map(|x| format!("{x}"))
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -126,7 +126,8 @@ fn test_group_literal() {
         .collect::<Vec<String>>()
         .join("\n");
     assert_eq!(
-        out, "LEFT_PAREN ( null\nLEFT_PAREN ( null\nTRUE true null\nRIGHT_PAREN ) null\nRIGHT_PAREN ) null\nEOF  null"
+        out,
+        "LEFT_PAREN ( null\nLEFT_PAREN ( null\nTRUE true null\nRIGHT_PAREN ) null\nRIGHT_PAREN ) null\nEOF  null"
     );
 }
 

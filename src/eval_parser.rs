@@ -69,11 +69,11 @@ impl Display for Expr<'_> {
                 write!(f, "({} {} {})", operator.origin, left, right)
             }
             Expr::Grouping(exp) => {
-                write!(f, "(group {})", exp)
+                write!(f, "(group {exp})")
             }
             Expr::Literal(literal_atom) => match literal_atom {
-                LiteralAtom::String(cow) => write!(f, "{}", cow),
-                LiteralAtom::Number(num) => write!(f, "{:?}", num),
+                LiteralAtom::String(cow) => write!(f, "{cow}"),
+                LiteralAtom::Number(num) => write!(f, "{num:?}"),
                 LiteralAtom::Nil => write!(f, "nil"),
                 LiteralAtom::Bool(b) => write!(f, "{b:?}"),
             },
@@ -93,7 +93,7 @@ impl<'de> Iterator for Parser<'de> {
         match exp {
             Ok(e) => Some(Ok(e)),
             Err(err) => {
-                eprintln!("{}", err);
+                eprintln!("{err}");
                 self.parse_failed = true;
                 Some(Err(err))
             }
@@ -103,18 +103,16 @@ impl<'de> Iterator for Parser<'de> {
 
 impl<'de> Parser<'de> {
     /// Create new `Parser` from a lexed token stream
+    #[must_use]
     pub fn new(input: &'de str) -> Self {
         let mut tokens = Vec::<Token>::new();
         let mut has_lex_error = false;
         for token in Lexer::new(input) {
-            match token {
-                Ok(t) => {
-                    tokens.push(t);
-                }
-                Err(_) => {
-                    has_lex_error = true;
-                    continue;
-                }
+            if let Ok(t) = token {
+                tokens.push(t);
+            } else {
+                has_lex_error = true;
+                continue;
             }
         }
         Parser {
@@ -267,9 +265,8 @@ impl<'de> Parser<'de> {
                     Ok(Expr::Grouping(Box::new(expr)))
                 }
                 _ => {
-                    let err_msg = self
-                        .error_msg(&token.token_type, origin, line_num, "Expect expression")
-                        .to_string();
+                    let err_msg =
+                        self.error_msg(&token.token_type, origin, line_num, "Expect expression");
                     Err(err_msg)
                 }
             }
@@ -336,9 +333,9 @@ impl<'de> Parser<'de> {
 
     fn error_msg(&self, token_type: &TokenType, origin: &str, num: usize, message: &str) -> String {
         if *token_type == TokenType::Eof {
-            format!("[line {}] Error at end: {}.", num, message)
+            format!("[line {num}] Error at end: {message}.")
         } else {
-            format!("[line {}] Error at '{}': {}.", num, origin, message)
+            format!("[line {num}] Error at '{origin}': {message}.")
         }
     }
 }

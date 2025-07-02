@@ -100,7 +100,7 @@ impl<'de> Iterator for Parser<'de> {
         match stmt {
             Ok(s) => Some(Ok(s)),
             Err(err) => {
-                eprintln!("{}", err);
+                eprintln!("{err}");
                 self.parse_failed = true;
                 Some(Err(err))
             }
@@ -110,6 +110,7 @@ impl<'de> Iterator for Parser<'de> {
 
 impl<'de> Parser<'de> {
     /// Create new `Parser` from a lexed token stream
+    #[must_use]
     pub fn new(input: &'de str) -> Self {
         let mut tokens = Vec::<Token>::new();
         for token in Lexer::new(input) {
@@ -225,14 +226,14 @@ impl<'de> Parser<'de> {
 
         if let Some(inc) = increment {
             body = Stmt::Block(vec![body, Stmt::ExpressionStatement(inc)]);
-        };
+        }
         body = Stmt::While {
             condition,
             body: Box::new(body),
         };
         if let Some(init) = initializer {
             body = Stmt::Block(vec![init, body]);
-        };
+        }
         Ok(body)
     }
 
@@ -286,7 +287,7 @@ impl<'de> Parser<'de> {
     fn block(&mut self) -> Result<Vec<Stmt<'de>>, String> {
         let mut stmts: Vec<Stmt<'de>> = Vec::new();
         while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
-            stmts.push(self.declaration()?)
+            stmts.push(self.declaration()?);
         }
 
         let token = self.peek();
@@ -334,20 +335,17 @@ impl<'de> Parser<'de> {
             let equals = self.previous().clone();
             let value = self.assignment()?;
 
-            match expr {
-                Expr::Variable(token) => {
-                    let name = token.origin;
-                    return Ok(Expr::Assign(name, Box::new(value)));
-                }
-                _ => {
-                    let err_msg = self.error_msg(
-                        &equals.token_type,
-                        equals.origin,
-                        equals.line,
-                        "Invalid assignment type.",
-                    );
-                    return Err(err_msg.to_string());
-                }
+            if let Expr::Variable(token) = expr {
+                let name = token.origin;
+                return Ok(Expr::Assign(name, Box::new(value)));
+            } else {
+                let err_msg = self.error_msg(
+                    &equals.token_type,
+                    equals.origin,
+                    equals.line,
+                    "Invalid assignment type.",
+                );
+                return Err(err_msg);
             }
         }
 
@@ -507,9 +505,8 @@ impl<'de> Parser<'de> {
                 Ok(Expr::Variable(self.previous().clone()))
             }
             _ => {
-                let err_msg = self
-                    .error_msg(&token.token_type, origin, line_num, "Expect expression")
-                    .to_string();
+                let err_msg =
+                    self.error_msg(&token.token_type, origin, line_num, "Expect expression");
                 Err(err_msg)
             }
         }
@@ -571,9 +568,9 @@ impl<'de> Parser<'de> {
 
     fn error_msg(&self, token_type: &TokenType, origin: &str, num: usize, message: &str) -> String {
         if *token_type == TokenType::Eof {
-            format!("[line {}] Error at end: {}.", num, message)
+            format!("[line {num}] Error at end: {message}.")
         } else {
-            format!("[line {}] Error at '{}': {}.", num, origin, message)
+            format!("[line {num}] Error at '{origin}': {message}.")
         }
     }
 }

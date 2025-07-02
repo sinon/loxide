@@ -46,10 +46,10 @@ macro_rules! set_snapshot_suffix {
 fn test_eval_literals(#[case] input: &str) {
     set_snapshot_suffix!("{}", input);
     let exprs: Vec<String> = Eval::new(input)
-        .take_while(|x| x.is_ok())
+        .take_while(std::result::Result::is_ok)
         .map(|e| match e {
-            Ok(exp) => format!("{}", exp),
-            Err(_) => "".to_string(),
+            Ok(exp) => format!("{exp}"),
+            Err(_) => String::new(),
         })
         .collect();
     assert_snapshot!(exprs.join("\n"));
