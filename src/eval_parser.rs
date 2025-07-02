@@ -311,7 +311,7 @@ impl<'de> Parser<'de> {
 
     fn is_at_end(&self) -> bool {
         self.peek()
-            .map_or(true, |token| matches!(token.token_type, TokenType::Eof))
+            .is_none_or(|token| matches!(token.token_type, TokenType::Eof))
     }
 
     fn consume(
