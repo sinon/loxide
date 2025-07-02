@@ -1,6 +1,7 @@
 use insta::assert_yaml_snapshot;
 use loxide::lexer::{Lexer, Token};
 use miette::Error;
+use std::fmt::Write;
 
 #[test]
 fn test_identifiers() {
@@ -126,7 +127,8 @@ fn test_group_literal() {
         .collect::<Vec<String>>()
         .join("\n");
     assert_eq!(
-        out, "LEFT_PAREN ( null\nLEFT_PAREN ( null\nTRUE true null\nRIGHT_PAREN ) null\nRIGHT_PAREN ) null\nEOF  null"
+        out,
+        "LEFT_PAREN ( null\nLEFT_PAREN ( null\nTRUE true null\nRIGHT_PAREN ) null\nRIGHT_PAREN ) null\nEOF  null"
     );
 }
 
@@ -134,7 +136,9 @@ fn test_group_literal() {
 fn test_empty_handling() {
     let out: String = Lexer::new("")
         .filter_map(Result::ok)
-        .map(|x| format!("{x}"))
-        .collect();
+        .fold(String::new(), |mut out, t| {
+            let _ = write!(out, "{t}");
+            out
+        });
     assert_yaml_snapshot!(out);
 }
