@@ -4,7 +4,7 @@
 
 use std::{fmt, process::ExitCode};
 
-use miette::{miette, Error, LabeledSpan, Result};
+use miette::{Error, LabeledSpan, Result, miette};
 
 /// `Token` is formed of a token type (`TokenType`) and a reference to a str in the input string
 #[derive(Clone, Debug)]
