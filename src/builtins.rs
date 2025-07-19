@@ -1,10 +1,10 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::eval::EvaluatedValue;
-use crate::run;
+use crate::interpreter;
 
 pub fn clock(
-    _interpreter: &mut run::Interpreter,
+    _interpreter: &mut interpreter::Interpreter,
     _args: &[EvaluatedValue],
 ) -> Result<EvaluatedValue, String> {
     let start = SystemTime::now();

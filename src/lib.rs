@@ -10,6 +10,6 @@
 mod builtins;
 pub mod eval;
 pub mod eval_parser;
+pub mod interpreter;
 pub mod lexer;
 pub mod parser;
-pub mod run;

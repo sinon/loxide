@@ -1,8 +1,8 @@
 use clap::Subcommand;
 use loxide::eval::Eval;
 use loxide::eval_parser::Parser;
+use loxide::interpreter::Interpreter;
 use loxide::lexer::Lexer;
-use loxide::run::Interpreter;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use std::fs;
 use std::path::PathBuf;

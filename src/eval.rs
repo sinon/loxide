@@ -7,8 +7,8 @@ use std::fmt::Display;
 
 use crate::{
     eval_parser::{Expr, LiteralAtom, Parser},
+    interpreter::NativeFunction,
     lexer::TokenType,
-    run::NativeFunction,
 };
 
 /// The value that an expression has evaluated too, this can be a literal.
