@@ -193,6 +193,7 @@ fn test_run_with_file(#[case] file_name: &str, #[case] expected_stdout: &str) {
     "",
     70
 )]
+#[case("run_illegal_call", "Can only call function and classes.\n", "", 70)]
 fn test_run_with_file_error(
     #[case] file_name: &str,
     #[case] expected_err: &str,

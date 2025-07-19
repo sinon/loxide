@@ -397,22 +397,20 @@ fn evaluate_expression<'de>(
             for arg in arguments {
                 args.push(evaluate_expression(arg, interpreter)?);
             }
-            // TODO: Need to check function arity on `EvaluatedValue` for Fn
-
-            match callee_fn {
-                EvaluatedValue::NativeFunction(native_function) => {
-                    if native_function.arity(interpreter) as usize != args.len() {
-                        eprintln!(
-                            "Incorrect number of arguments passed to {}. Expected {} Found {}",
-                            native_function.name,
-                            native_function.arity,
-                            args.len()
-                        );
-                        return Err("Incorrect arity".to_string());
-                    }
-                    native_function.call(interpreter, &args)
+            if let EvaluatedValue::NativeFunction(native_function) = callee_fn {
+                if native_function.arity(interpreter) as usize != args.len() {
+                    eprintln!(
+                        "Incorrect number of arguments passed to {}. Expected {} Found {}",
+                        native_function.name,
+                        native_function.arity,
+                        args.len()
+                    );
+                    return Err("Incorrect arity".to_string());
                 }
-                _ => todo!(),
+                native_function.call(interpreter, &args)
+            } else {
+                eprintln!("Can only call function and classes.");
+                Err("Can only call functions and classes.".to_string())
             }
         }
     }
