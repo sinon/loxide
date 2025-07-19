@@ -62,3 +62,4 @@ var quz = "global quz";
 print world;  // "global world"
 print baz;  // "global baz"
 print quz;  // "global_quz"
+clock();

@@ -22,7 +22,7 @@ fn test_parser_literals(#[case] input: &str) {
         .take_while(std::result::Result::is_ok)
         .map(|e| match e {
             Ok(exp) => format!("{exp}"),
-            Err(_) => format!(""),
+            Err(_) => String::new(),
         })
         .collect();
     assert_snapshot!(exprs.join("\n"));

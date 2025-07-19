@@ -7,8 +7,10 @@
 #![allow(clippy::float_cmp)]
 #![allow(clippy::too_many_lines)]
 #![warn(missing_docs)]
+mod builtins;
 pub mod eval;
 pub mod eval_parser;
+pub mod interpreter;
 pub mod lexer;
-pub mod parser;
-pub mod run;
+mod parser;
+mod value;

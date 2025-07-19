@@ -4,7 +4,10 @@
 //!
 //! Uses a recursive desecent parser. To transform the token stream into
 //! `Expr`
-use crate::lexer::{Lexer, Token, TokenType};
+use crate::{
+    interpreter,
+    lexer::{Lexer, Token, TokenType},
+};
 
 /// `Parser` is responsible for iterating over the token stream from `Lexer`
 /// and converting the lexed `Token` into `Expr` which represent an Abstract Syntax Tree (AST)
@@ -27,7 +30,7 @@ pub enum LiteralAtom<'de> {
     Bool(bool),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// `Expr` represents a unit of an AST
 pub enum Expr<'de> {
     /// `Binary` is a binary expression such as `1 * 2`
@@ -63,9 +66,18 @@ pub enum Expr<'de> {
         /// The right expression of a Logical expression
         right: Box<Expr<'de>>,
     },
+    /// Function `Call`
+    Call {
+        /// function to be called
+        callee: Box<Expr<'de>>,
+        /// paren token
+        paren: Token<'de>,
+        /// arguments to be passed to function call
+        arguments: Vec<Expr<'de>>,
+    },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// `Stmt` represents the possible statements supported
 pub enum Stmt<'de> {
     /// A print statement
@@ -85,6 +97,12 @@ pub enum Stmt<'de> {
         condition: Expr<'de>,
         /// The statements that will be executed repreatedly if `condition`
         body: Box<Stmt<'de>>,
+    },
+    /// Func statement
+    Function {
+        name: Token<'de>,
+        parameters: Vec<Token<'de>>,
+        body: Vec<Stmt<'de>>,
     },
 }
 
@@ -121,10 +139,47 @@ impl<'de> Parser<'de> {
     }
 
     fn declaration(&mut self) -> Result<Stmt<'de>, String> {
+        if self.match_tokens(&[TokenType::Fun]) {
+            return self.function("function");
+        }
         if self.match_tokens(&[TokenType::Var]) {
             return self.var_declaration();
         }
         self.statement()
+    }
+
+    fn function(&mut self, kind: &str) -> Result<Stmt<'de>, String> {
+        let name = self
+            .consume(&TokenType::Identifier, &format!("Expect {} name.", kind))?
+            .clone();
+        self.consume(
+            &TokenType::LeftParen,
+            &format!("Expect '(' after {} name.", kind),
+        )?;
+        let mut parameters = Vec::new();
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                if parameters.len() > 255 {
+                    return Err("Can't have more than 255 parameters.".to_string());
+                }
+                // TODO: Figure out right way to avoid this clone
+                let param = self
+                    .consume(&TokenType::Identifier, "Expect parameter name")?
+                    .clone();
+                parameters.push(param);
+                if !self.match_tokens(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(&TokenType::RightParen, "Expect ')' after parameters")?;
+        self.consume(&TokenType::LeftBrace, "Expect '{' after parameters")?;
+        let body = self.block()?;
+        Ok(Stmt::Function {
+            name,
+            parameters,
+            body,
+        })
     }
 
     fn var_declaration(&mut self) -> Result<Stmt<'de>, String> {
@@ -229,20 +284,19 @@ impl<'de> Parser<'de> {
         while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
             stmts.push(self.declaration()?);
         }
-
-        self.consume(&TokenType::RightBrace, "Expect '}' after block.")?;
+        self.consume(&TokenType::RightBrace, "Expect '}' after block")?;
         Ok(stmts)
     }
 
     fn expression_statement(&mut self) -> Result<Stmt<'de>, String> {
         let expr = self.expression()?;
-        self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
+        self.consume(&TokenType::Semicolon, "Expect ';' after value")?;
         Ok(Stmt::ExpressionStatement(expr))
     }
 
     fn print_statement(&mut self) -> Result<Stmt<'de>, String> {
         let expr = self.expression()?;
-        self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
+        self.consume(&TokenType::Semicolon, "Expect ';' after value")?;
         Ok(Stmt::Print(expr))
     }
 
@@ -382,7 +436,44 @@ impl<'de> Parser<'de> {
             });
         }
 
-        self.primary()
+        self.call()
+    }
+
+    fn call(&mut self) -> Result<Expr<'de>, String> {
+        let mut expr = self.primary()?;
+        loop {
+            if self.match_tokens(&[TokenType::LeftParen]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr<'de>) -> Result<Expr<'de>, String> {
+        let mut arguments: Vec<Expr<'de>> = vec![];
+
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                arguments.push(self.expression()?);
+                // https://users.rust-lang.org/t/how-many-arguments-can-i-pass-to-a-function/84250
+                if arguments.len() >= 65535 {
+                    return Err("Can't have more than 65535 arguments.".to_string());
+                }
+                if !self.match_tokens(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        let paren = self
+            .consume(&TokenType::RightParen, "Expect ')' after arguments.")?
+            .clone();
+        Ok(Expr::Call {
+            callee: Box::new(callee),
+            paren,
+            arguments,
+        })
     }
 
     fn primary(&mut self) -> Result<Expr<'de>, String> {

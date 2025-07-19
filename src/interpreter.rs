@@ -3,19 +3,84 @@
 //! Responsible for running the AST and returning the computed values
 //!
 
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
 use crate::{
-    eval::EvaluatedValue,
-    lexer::TokenType,
+    builtins,
+    lexer::{Token, TokenType},
     parser::{Expr, LiteralAtom, Parser, Stmt},
+    value::EvaluatedValue,
 };
 
-/// `Run`
-/// an iterator that consumes expressions from the parser and tries to evaluate them.
-pub struct Run<'de> {
+trait Callable {
+    fn arity(&self, interpreter: &Interpreter) -> u8;
+    fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        args: &[EvaluatedValue],
+    ) -> Result<EvaluatedValue, String>;
+}
+
+/// `NativeFunction` is used to represent builtin native functions
+#[derive(Clone)]
+pub struct NativeFunction {
+    /// `name` of the native function
+    pub name: String,
+    /// Numbers of arguments that should be passed to `callable`
+    pub arity: u8,
+    /// A function to be run
+    pub callable: fn(&mut Interpreter, &[EvaluatedValue]) -> Result<EvaluatedValue, String>,
+}
+
+impl fmt::Debug for NativeFunction {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "NativeFunction({})", self.name)
+    }
+}
+
+impl Callable for NativeFunction {
+    fn arity(&self, _interpreter: &Interpreter) -> u8 {
+        self.arity
+    }
+    fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        args: &[EvaluatedValue],
+    ) -> Result<EvaluatedValue, String> {
+        (self.callable)(interpreter, args)
+    }
+}
+
+#[derive(Debug)]
+pub struct LoxFunction<'de> {
+    pub name: Token<'de>,
+    pub parameters: Vec<Token<'de>>,
+    pub body: Vec<Stmt<'de>>,
+}
+
+impl Callable for LoxFunction<'_> {
+    fn arity(&self, _interpreter: &Interpreter) -> u8 {
+        self.parameters.len() as u8
+    }
+
+    fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        args: &[EvaluatedValue],
+    ) -> Result<EvaluatedValue, String> {
+        todo!()
+    }
+}
+
+/// `Interpreter`
+/// responsible for iterating over the rusults of parser
+/// and evaluating the statements and expressions encountered
+pub struct Interpreter<'de> {
     parser: Parser<'de>,
     environment: Environment<'de>,
+    globals: Environment<'de>,
+    lox_functions: HashMap<u64, LoxFunction<'de>>,
+    counter: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -75,88 +140,138 @@ impl<'de> Environment<'de> {
     }
 }
 
-impl<'de> Run<'de> {
-    /// Create a new `Run` to process a given input source code
+impl<'de> Interpreter<'de> {
+    /// Create a new `Interpreter` to process a given input source code
+    /// # Panics
+    /// Will panic if `SystemTime::now()` returns value before `UNIX_EPOCH`
     #[must_use]
     pub fn new(input: &'de str) -> Self {
-        Run {
+        let mut global_data = HashMap::new();
+        global_data.insert(
+            "clock",
+            EvaluatedValue::NativeFunction(NativeFunction {
+                name: "clock".to_string(),
+                arity: 0,
+                callable: builtins::clock,
+            }),
+        );
+        let globals = Environment {
+            data: global_data,
+            enclosing: None,
+        };
+        Self {
             parser: Parser::new(input),
             environment: Environment::new(),
+            globals,
+            lox_functions: Default::default(),
+            counter: 0,
         }
     }
 }
 
-impl Iterator for Run<'_> {
+impl Iterator for Interpreter<'_> {
     type Item = Result<(), u8>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let stmt = self.parser.next()?;
-        match stmt {
-            Ok(s) => {
-                let eval_stmt = evaluate_statement(&s, &mut self.environment);
-                match eval_stmt {
-                    Ok(()) => Some(Ok(())),
-                    Err(_) => Some(Err(70)),
-                }
+        stmt.map_or(Some(Err(65)), |s| {
+            let eval_stmt = evaluate_statement(&s, self);
+            match eval_stmt {
+                Ok(()) => Some(Ok(())),
+                Err(_) => Some(Err(70)),
             }
-            Err(_) => Some(Err(65)),
-        }
+        })
+    }
+}
+
+impl Interpreter<'_> {
+    fn alloc_id(&mut self) -> u64 {
+        self.counter += 1;
+        self.counter
     }
 }
 
 fn evaluate_statement<'de>(
     stmt: &Stmt<'de>,
-    environment: &mut Environment<'de>,
+    interpreter: &mut Interpreter<'de>,
 ) -> Result<(), String> {
     match stmt {
         Stmt::Print(expr) => {
-            let val = evaluate_expression(expr, environment)?;
+            let val = evaluate_expression(expr, interpreter)?;
             println!("{val}");
         }
         Stmt::If(cond, then_branch, else_branch) => {
-            let eval_cond = evaluate_expression(cond, environment)?;
+            let eval_cond = evaluate_expression(cond, interpreter)?;
             if eval_cond.into() {
-                evaluate_statement(then_branch, environment)?;
+                evaluate_statement(then_branch, interpreter)?;
             } else if let Some(e) = else_branch {
-                evaluate_statement(e, environment)?;
+                evaluate_statement(e, interpreter)?;
             }
         }
         Stmt::ExpressionStatement(expr) => {
-            evaluate_expression(expr, environment)?;
+            evaluate_expression(expr, interpreter)?;
         }
         Stmt::Var(name, expr) => match expr {
             Some(v) => {
-                let evalutated_val = evaluate_expression(v, environment)?;
-                environment.var_assign(name, &evalutated_val);
+                let evalutated_val = evaluate_expression(v, interpreter)?;
+                interpreter.environment.var_assign(name, &evalutated_val);
             }
             None => {
-                environment.var_assign(name, &EvaluatedValue::Nil);
+                interpreter
+                    .environment
+                    .var_assign(name, &EvaluatedValue::Nil);
             }
         },
         Stmt::Block(stmts) => {
-            let mut new_env = Environment::from_parent(environment.clone());
+            let new_env = Environment::from_parent(interpreter.environment.clone());
+            interpreter.environment = new_env;
             for stmt in stmts {
-                evaluate_statement(stmt, &mut new_env)?;
+                evaluate_statement(stmt, interpreter)?;
             }
-            *environment = new_env
+            // # TODO: Remove this clone
+            interpreter.environment = interpreter
+                .environment
+                .clone()
                 .enclosing
                 .expect("`new_env` declared above will always have `enclosing` set")
                 .borrow()
                 .clone();
         }
         Stmt::While { condition, body } => loop {
-            if !(evaluate_expression(condition, environment)?.is_truthy()) {
+            if !(evaluate_expression(condition, interpreter)?.is_truthy()) {
                 break;
             }
-            evaluate_statement(body, environment)?;
+            evaluate_statement(body, interpreter)?;
         },
+        Stmt::Function {
+            name,
+            parameters,
+            body,
+        } => {
+            let func_id = interpreter.alloc_id();
+            // interpreter.environment.assign(
+            //     &'de key,
+            //     &EvaluatedValue::LoxFunction {
+            //         name: name.to_string(),
+            //         binding: None,
+            //     },
+            // );
+            let lox_fun = LoxFunction {
+                name: name.clone(),
+                parameters: parameters.clone(),
+                body: body.clone(),
+            };
+            interpreter.lox_functions.insert(func_id, lox_fun);
+            interpreter.globals.insert(name, lox_fun);
+            ()
+        }
     }
     Ok(())
 }
 
 fn evaluate_expression<'de>(
     expr: &Expr<'de>,
-    environment: &mut Environment<'de>,
+    interpreter: &mut Interpreter<'de>,
 ) -> Result<EvaluatedValue, String> {
     match expr {
         Expr::Binary {
@@ -164,8 +279,8 @@ fn evaluate_expression<'de>(
             operator,
             right,
         } => {
-            let l_expr = evaluate_expression(left, environment)?;
-            let r_expr = evaluate_expression(right, environment)?;
+            let l_expr = evaluate_expression(left, interpreter)?;
+            let r_expr = evaluate_expression(right, interpreter)?;
             match operator.token_type {
                 TokenType::Minus
                 | TokenType::Star
@@ -242,7 +357,7 @@ fn evaluate_expression<'de>(
             }
         }
         Expr::Unary { operator, right } => {
-            let r = evaluate_expression(right, environment);
+            let r = evaluate_expression(right, interpreter);
             if let (TokenType::Minus, Ok(e)) = (operator.token_type, &r) {
                 if let EvaluatedValue::Number(_) = e {
                 } else {
@@ -263,6 +378,8 @@ fn evaluate_expression<'de>(
                             true => Ok(EvaluatedValue::Bool(false)),
                             false => Ok(EvaluatedValue::Bool(true)),
                         },
+                        EvaluatedValue::NativeFunction(_f) => todo!(),
+                        EvaluatedValue::LoxFunction { name, binding } => todo!(),
                     },
                 ),
                 TokenType::Minus => r.as_ref().map_or_else(
@@ -272,6 +389,8 @@ fn evaluate_expression<'de>(
                         EvaluatedValue::Number(n) => Ok(EvaluatedValue::Number(-n)),
                         EvaluatedValue::Nil => todo!(),
                         EvaluatedValue::Bool(_) => todo!(),
+                        EvaluatedValue::NativeFunction(_f) => todo!(),
+                        EvaluatedValue::LoxFunction { name, binding } => todo!(),
                     },
                 ),
                 // TODO: Make unrepresentable by narrowing `operator` to `UnaryOperator:Not|Negate`
@@ -286,19 +405,22 @@ fn evaluate_expression<'de>(
             LiteralAtom::Nil => Ok(EvaluatedValue::Nil),
             LiteralAtom::Bool(b) => Ok(EvaluatedValue::Bool(*b)),
         },
-        Expr::Grouping(expr) => evaluate_expression(expr, environment),
-        Expr::Variable(token) => environment.get(token.origin).map_or_else(
-            || {
-                eprintln!("Undefined variable '{}'.", token.origin);
-                eprintln!("[line {}]", token.line);
-                Err("Undefined var".to_string())
-            },
-            Ok,
-        ),
+        Expr::Grouping(expr) => evaluate_expression(expr, interpreter),
+        Expr::Variable(token) => match interpreter.environment.get(token.origin) {
+            Some(v) => Ok(v),
+            None => interpreter.globals.get(token.origin).map_or_else(
+                || {
+                    eprintln!("Undefined variable '{}'.", token.origin);
+                    eprintln!("[line {}]", token.line);
+                    Err("Undefined var".to_string())
+                },
+                Ok,
+            ),
+        },
         Expr::Assign(name, expr) => {
-            if environment.get(name).is_some() {
-                let eval_expr = evaluate_expression(expr, environment)?;
-                environment.assign(name, &eval_expr)?;
+            if interpreter.environment.get(name).is_some() {
+                let eval_expr = evaluate_expression(expr, interpreter)?;
+                interpreter.environment.assign(name, &eval_expr)?;
                 Ok(eval_expr)
             } else {
                 eprintln!("Undefined variable '{name}'.");
@@ -310,7 +432,7 @@ fn evaluate_expression<'de>(
             operator,
             right,
         } => {
-            let left_val = evaluate_expression(left, environment)?;
+            let left_val = evaluate_expression(left, interpreter)?;
             let left_truth: bool = left_val.is_truthy();
             if operator.token_type == TokenType::Or {
                 if left_truth {
@@ -319,7 +441,32 @@ fn evaluate_expression<'de>(
             } else if !left_truth {
                 return Ok(left_val);
             }
-            Ok(evaluate_expression(right, environment)?)
+            Ok(evaluate_expression(right, interpreter)?)
+        }
+        Expr::Call {
+            callee,
+            paren: _,
+            arguments,
+        } => {
+            let callee_fn = evaluate_expression(callee, interpreter)?;
+            let mut args: Vec<EvaluatedValue> = Vec::new();
+            for arg in arguments {
+                args.push(evaluate_expression(arg, interpreter)?);
+            }
+            if let EvaluatedValue::NativeFunction(native_function) = callee_fn {
+                if native_function.arity(interpreter) as usize != args.len() {
+                    eprintln!(
+                        "Expected {} arguments but got {}.",
+                        native_function.arity,
+                        args.len()
+                    );
+                    return Err("Incorrect arity".to_string());
+                }
+                native_function.call(interpreter, &args)
+            } else {
+                eprintln!("Can only call function and classes.");
+                Err("Can only call functions and classes.".to_string())
+            }
         }
     }
 }
