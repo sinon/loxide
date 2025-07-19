@@ -1,0 +1,28 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    - id: check-yaml
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+-   repo: local
+    hooks:
+    - id: cargo-fmt
+      name: cargo fmt
+      entry: cargo fmt -- --check
+      language: system
+      files: \.rs$
+      args: []
+    - id: lint
+      name: lint
+      entry: just lint
+      language: system
+      pass_filenames: false
+      files: \.rs$
+      args: []
+    - id: test
+      name: test
+      entry: just test
+      language: system
+      pass_filenames: false
+      args: []
