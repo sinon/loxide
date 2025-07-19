@@ -8,6 +8,7 @@ use std::fmt::Display;
 use crate::{
     eval_parser::{Expr, LiteralAtom, Parser},
     lexer::TokenType,
+    run::NativeFunction,
 };
 
 /// The value that an expression has evaluated too, this can be a literal.
@@ -21,6 +22,8 @@ pub enum EvaluatedValue {
     Nil,
     /// Boolean value `true`/`false`
     Bool(bool),
+    /// fn
+    NativeFunction(NativeFunction),
 }
 
 impl EvaluatedValue {
@@ -29,6 +32,7 @@ impl EvaluatedValue {
             Self::String(_) | Self::Number(_) => true,
             Self::Nil => false,
             Self::Bool(b) => *b,
+            Self::NativeFunction(f) => true,
         }
     }
 }
@@ -39,6 +43,7 @@ impl From<EvaluatedValue> for bool {
             EvaluatedValue::String(_) | EvaluatedValue::Number(_) => true,
             EvaluatedValue::Nil => false,
             EvaluatedValue::Bool(b) => b,
+            EvaluatedValue::NativeFunction(f) => true,
         }
     }
 }
@@ -50,6 +55,7 @@ impl Display for EvaluatedValue {
             Self::Number(n) => write!(f, "{n}"),
             Self::Nil => write!(f, "nil"),
             Self::Bool(b) => write!(f, "{b:}"),
+            Self::NativeFunction(native_fn) => write!(f, "nat fn # TODO"),
         }
     }
 }
@@ -177,6 +183,7 @@ fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
                             true => Ok(EvaluatedValue::Bool(false)),
                             false => Ok(EvaluatedValue::Bool(true)),
                         },
+                        EvaluatedValue::NativeFunction(f) => todo!(),
                     },
                 ),
                 TokenType::Minus => r.as_ref().map_or_else(
@@ -186,6 +193,7 @@ fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
                         EvaluatedValue::Number(n) => Ok(EvaluatedValue::Number(-n)),
                         EvaluatedValue::Nil => todo!(),
                         EvaluatedValue::Bool(_) => todo!(),
+                        EvaluatedValue::NativeFunction(_) => todo!(),
                     },
                 ),
                 // TODO: Make unrepresentable by narrowing `operator` to `UnaryOperator:Not|Negate`

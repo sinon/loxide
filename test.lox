@@ -1,1 +1,9 @@
 if (true) print "bar";  // "bar"
+
+print clock();
+
+// fun sayHi(first, last) {
+//   print "Hi, " + first + " " + last + "!";
+// }
+
+// sayHi("Dear", "Reader");

@@ -30,7 +30,7 @@ fn main() -> Result<ExitCode> {
         Commands::Tokenize { filename } => {
             let input = fs::read_to_string(filename)
                 .into_diagnostic()
-                .wrap_err_with(|| "reading file".to_string())?;
+                .wrap_err_with(|| format!("reading file"))?;
             Ok(Lexer::new(&input).tokenize_lex())
         }
         Commands::Parse { filename } => {

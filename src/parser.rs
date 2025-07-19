@@ -63,6 +63,15 @@ pub enum Expr<'de> {
         /// The right expression of a Logical expression
         right: Box<Expr<'de>>,
     },
+    /// Function `Call`
+    Call {
+        /// function to be called
+        callee: Box<Expr<'de>>,
+        /// paren token
+        paren: Token<'de>,
+        /// arguments to be passed to function call
+        arguments: Vec<Expr<'de>>,
+    },
 }
 
 #[derive(Debug)]
@@ -196,7 +205,7 @@ impl<'de> Parser<'de> {
         };
         if let Some(init) = initializer {
             body = Stmt::Block(vec![init, body]);
-        }
+        };
         Ok(body)
     }
 
@@ -382,7 +391,46 @@ impl<'de> Parser<'de> {
             });
         }
 
-        self.primary()
+        self.call()
+    }
+
+    fn call(&mut self) -> Result<Expr<'de>, String> {
+        let mut expr = self.primary()?;
+
+        loop {
+            if self.match_tokens(&[TokenType::LeftParen]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr<'de>) -> Result<Expr<'de>, String> {
+        let mut arguments: Vec<Expr<'de>> = vec![];
+
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                arguments.push(self.expression()?);
+                // https://users.rust-lang.org/t/how-many-arguments-can-i-pass-to-a-function/84250
+                if arguments.len() >= 65535 {
+                    return Err("Can't have more than 65535 arguments.".to_string());
+                }
+                if !self.match_tokens(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        let paren = self
+            .consume(&TokenType::RightParen, "Expect ')' after arguments.")?
+            .clone();
+
+        Ok(Expr::Call {
+            callee: Box::new(callee),
+            paren,
+            arguments,
+        })
     }
 
     fn primary(&mut self) -> Result<Expr<'de>, String> {
