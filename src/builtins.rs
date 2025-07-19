@@ -1,7 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::eval::EvaluatedValue;
 use crate::interpreter;
+use crate::value::EvaluatedValue;
 
 pub fn clock(
     _interpreter: &mut interpreter::Interpreter,

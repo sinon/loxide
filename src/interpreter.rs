@@ -7,9 +7,9 @@ use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
 use crate::{
     builtins,
-    eval::EvaluatedValue,
-    lexer::TokenType,
+    lexer::{Token, TokenType},
     parser::{Expr, LiteralAtom, Parser, Stmt},
+    value::EvaluatedValue,
 };
 
 trait Callable {
@@ -51,6 +51,27 @@ impl Callable for NativeFunction {
     }
 }
 
+#[derive(Debug)]
+pub struct LoxFunction<'de> {
+    pub name: Token<'de>,
+    pub parameters: Vec<Token<'de>>,
+    pub body: Vec<Stmt<'de>>,
+}
+
+impl Callable for LoxFunction<'_> {
+    fn arity(&self, _interpreter: &Interpreter) -> u8 {
+        self.parameters.len() as u8
+    }
+
+    fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        args: &[EvaluatedValue],
+    ) -> Result<EvaluatedValue, String> {
+        todo!()
+    }
+}
+
 /// `Interpreter`
 /// responsible for iterating over the rusults of parser
 /// and evaluating the statements and expressions encountered
@@ -58,6 +79,8 @@ pub struct Interpreter<'de> {
     parser: Parser<'de>,
     environment: Environment<'de>,
     globals: Environment<'de>,
+    lox_functions: HashMap<u64, LoxFunction<'de>>,
+    counter: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -140,6 +163,8 @@ impl<'de> Interpreter<'de> {
             parser: Parser::new(input),
             environment: Environment::new(),
             globals,
+            lox_functions: Default::default(),
+            counter: 0,
         }
     }
 }
@@ -156,6 +181,13 @@ impl Iterator for Interpreter<'_> {
                 Err(_) => Some(Err(70)),
             }
         })
+    }
+}
+
+impl Interpreter<'_> {
+    fn alloc_id(&mut self) -> u64 {
+        self.counter += 1;
+        self.counter
     }
 }
 
@@ -211,6 +243,28 @@ fn evaluate_statement<'de>(
             }
             evaluate_statement(body, interpreter)?;
         },
+        Stmt::Function {
+            name,
+            parameters,
+            body,
+        } => {
+            let func_id = interpreter.alloc_id();
+            // interpreter.environment.assign(
+            //     &'de key,
+            //     &EvaluatedValue::LoxFunction {
+            //         name: name.to_string(),
+            //         binding: None,
+            //     },
+            // );
+            let lox_fun = LoxFunction {
+                name: name.clone(),
+                parameters: parameters.clone(),
+                body: body.clone(),
+            };
+            interpreter.lox_functions.insert(func_id, lox_fun);
+            interpreter.globals.insert(name, lox_fun);
+            ()
+        }
     }
     Ok(())
 }
@@ -325,6 +379,7 @@ fn evaluate_expression<'de>(
                             false => Ok(EvaluatedValue::Bool(true)),
                         },
                         EvaluatedValue::NativeFunction(_f) => todo!(),
+                        EvaluatedValue::LoxFunction { name, binding } => todo!(),
                     },
                 ),
                 TokenType::Minus => r.as_ref().map_or_else(
@@ -335,6 +390,7 @@ fn evaluate_expression<'de>(
                         EvaluatedValue::Nil => todo!(),
                         EvaluatedValue::Bool(_) => todo!(),
                         EvaluatedValue::NativeFunction(_f) => todo!(),
+                        EvaluatedValue::LoxFunction { name, binding } => todo!(),
                     },
                 ),
                 // TODO: Make unrepresentable by narrowing `operator` to `UnaryOperator:Not|Negate`

@@ -1,64 +1,13 @@
 //! Eval module
 //!
-//! Responsible for evlauting the AST and returning the computed values
-//!
-
-use std::fmt::Display;
+//! Responsible for evalulating the AST and returning the computed values
+//! Only supports simple expressions
 
 use crate::{
     eval_parser::{Expr, LiteralAtom, Parser},
-    interpreter::NativeFunction,
     lexer::TokenType,
+    value::EvaluatedValue,
 };
-
-/// The value that an expression has evaluated too, this can be a literal.
-#[derive(Clone, Debug)]
-pub enum EvaluatedValue {
-    /// String value `"hello"`
-    String(String),
-    /// Number value. Note Lox only supports double precision floating point
-    Number(f64),
-    /// nil, the unset/null value
-    Nil,
-    /// Boolean value `true`/`false`
-    Bool(bool),
-    /// fn
-    NativeFunction(NativeFunction),
-}
-
-impl EvaluatedValue {
-    pub(crate) const fn is_truthy(&self) -> bool {
-        match self {
-            Self::String(_) | Self::Number(_) => true,
-            Self::Nil => false,
-            Self::Bool(b) => *b,
-            Self::NativeFunction(_f) => true,
-        }
-    }
-}
-
-impl From<EvaluatedValue> for bool {
-    fn from(val: EvaluatedValue) -> Self {
-        match val {
-            EvaluatedValue::String(_) | EvaluatedValue::Number(_) => true,
-            EvaluatedValue::Nil => false,
-            EvaluatedValue::Bool(b) => b,
-            EvaluatedValue::NativeFunction(_f) => true,
-        }
-    }
-}
-
-impl Display for EvaluatedValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::String(s) => write!(f, "{s}"),
-            Self::Number(n) => write!(f, "{n}"),
-            Self::Nil => write!(f, "nil"),
-            Self::Bool(b) => write!(f, "{b:}"),
-            Self::NativeFunction(_native_fn) => write!(f, "nat fn # TODO"),
-        }
-    }
-}
 
 /// `Eval`
 /// an iterator that consumes expressions from the parser and tries to evaluate them.
@@ -183,17 +132,14 @@ fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
                             true => Ok(EvaluatedValue::Bool(false)),
                             false => Ok(EvaluatedValue::Bool(true)),
                         },
-                        EvaluatedValue::NativeFunction(_f) => todo!(),
+                        _ => todo!(),
                     },
                 ),
                 TokenType::Minus => r.as_ref().map_or_else(
                     |_| todo!(),
                     |v| match v {
-                        EvaluatedValue::String(_) => todo!(),
                         EvaluatedValue::Number(n) => Ok(EvaluatedValue::Number(-n)),
-                        EvaluatedValue::Nil => todo!(),
-                        EvaluatedValue::Bool(_) => todo!(),
-                        EvaluatedValue::NativeFunction(_) => todo!(),
+                        _ => todo!(),
                     },
                 ),
                 // TODO: Make unrepresentable by narrowing `operator` to `UnaryOperator:Not|Negate`

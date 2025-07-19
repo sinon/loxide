@@ -1,10 +1,4 @@
-if (true) print "bar";  // "bar"
-
-print clock();
-clock(1, 2, 3);
-
-// fun sayHi(first, last) {
-//   print "Hi, " + first + " " + last + "!";
-// }
-
-// sayHi("Dear", "Reader");
+fun sayHi(first, last) {
+ print "Hi, " + first + " " + last + "!";
+}
+sayHi("Dear", "Reader");
