@@ -230,8 +230,6 @@ fn evaluate_statement<'de>(
 fn evaluate_expression<'de>(
     expr: &Expr<'de>,
     interpreter: &mut Interpreter<'de>,
-    // environment: &mut Environment<'de>,
-    // globals: &mut Environment<'de>,
 ) -> Result<EvaluatedValue, String> {
     match expr {
         Expr::Binary {
