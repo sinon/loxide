@@ -32,7 +32,7 @@ impl EvaluatedValue {
             Self::String(_) | Self::Number(_) => true,
             Self::Nil => false,
             Self::Bool(b) => *b,
-            Self::NativeFunction(f) => true,
+            Self::NativeFunction(_f) => true,
         }
     }
 }
@@ -43,7 +43,7 @@ impl From<EvaluatedValue> for bool {
             EvaluatedValue::String(_) | EvaluatedValue::Number(_) => true,
             EvaluatedValue::Nil => false,
             EvaluatedValue::Bool(b) => b,
-            EvaluatedValue::NativeFunction(f) => true,
+            EvaluatedValue::NativeFunction(_f) => true,
         }
     }
 }
@@ -55,7 +55,7 @@ impl Display for EvaluatedValue {
             Self::Number(n) => write!(f, "{n}"),
             Self::Nil => write!(f, "nil"),
             Self::Bool(b) => write!(f, "{b:}"),
-            Self::NativeFunction(native_fn) => write!(f, "nat fn # TODO"),
+            Self::NativeFunction(_native_fn) => write!(f, "nat fn # TODO"),
         }
     }
 }
@@ -183,7 +183,7 @@ fn evaluate_expression(expr: Expr) -> Result<EvaluatedValue, String> {
                             true => Ok(EvaluatedValue::Bool(false)),
                             false => Ok(EvaluatedValue::Bool(true)),
                         },
-                        EvaluatedValue::NativeFunction(f) => todo!(),
+                        EvaluatedValue::NativeFunction(_f) => todo!(),
                     },
                 ),
                 TokenType::Minus => r.as_ref().map_or_else(

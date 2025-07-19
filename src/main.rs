@@ -2,7 +2,7 @@ use clap::Subcommand;
 use loxide::eval::Eval;
 use loxide::eval_parser::Parser;
 use loxide::lexer::Lexer;
-use loxide::run::Run;
+use loxide::run::Interpreter;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use std::fs;
 use std::path::PathBuf;
@@ -30,7 +30,7 @@ fn main() -> Result<ExitCode> {
         Commands::Tokenize { filename } => {
             let input = fs::read_to_string(filename)
                 .into_diagnostic()
-                .wrap_err_with(|| format!("reading file"))?;
+                .wrap_err_with(|| "reading file".to_string())?;
             Ok(Lexer::new(&input).tokenize_lex())
         }
         Commands::Parse { filename } => {
@@ -57,7 +57,7 @@ fn main() -> Result<ExitCode> {
                 .into_diagnostic()
                 .wrap_err_with(|| "reading file".to_string())?;
             let mut exit_code = 0;
-            for res in Run::new(&input) {
+            for res in Interpreter::new(&input) {
                 match res {
                     Ok(()) => {}
                     Err(err_code) => {

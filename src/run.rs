@@ -18,19 +18,23 @@ use crate::{
 };
 
 trait Callable {
-    fn arity(&self, interpreter: &Run) -> u8;
+    fn arity(&self, interpreter: &Interpreter) -> u8;
     fn call(
         &self,
-        interpreter: &mut Run,
+        interpreter: &mut Interpreter,
         args: &[EvaluatedValue],
     ) -> Result<EvaluatedValue, String>;
 }
 
+/// `NativeFunction` is used to represent builtin native functions
 #[derive(Clone)]
 pub struct NativeFunction {
+    /// `name` of the native function
     pub name: String,
+    /// Numbers of arguments that should be passed to `callable`
     pub arity: u8,
-    pub callable: fn(&mut Run, &[EvaluatedValue]) -> Result<EvaluatedValue, String>,
+    /// A function to be run
+    pub callable: fn(&mut Interpreter, &[EvaluatedValue]) -> Result<EvaluatedValue, String>,
 }
 
 impl fmt::Debug for NativeFunction {
@@ -40,21 +44,22 @@ impl fmt::Debug for NativeFunction {
 }
 
 impl Callable for NativeFunction {
-    fn arity(&self, _interpreter: &Run) -> u8 {
+    fn arity(&self, _interpreter: &Interpreter) -> u8 {
         self.arity
     }
     fn call(
         &self,
-        interpreter: &mut Run,
+        interpreter: &mut Interpreter,
         args: &[EvaluatedValue],
     ) -> Result<EvaluatedValue, String> {
         (self.callable)(interpreter, args)
     }
 }
 
-/// `Run`
-/// an iterator that consumes expressions from the parser and tries to evaluate them.
-pub struct Run<'de> {
+/// `Interpreter`
+/// responsible for iterating over the rusults of parser
+/// and evaluating the statements and expressions encountered
+pub struct Interpreter<'de> {
     parser: Parser<'de>,
     environment: Environment<'de>,
     globals: Environment<'de>,
@@ -117,8 +122,10 @@ impl<'de> Environment<'de> {
     }
 }
 
-impl<'de> Run<'de> {
+impl<'de> Interpreter<'de> {
     /// Create a new `Interpreter` to process a given input source code
+    /// # Panics
+    /// Will panic if `SystemTime::now()` returns value before `UNIX_EPOCH`
     #[must_use]
     pub fn new(input: &'de str) -> Self {
         let mut global_data = HashMap::new();
@@ -129,8 +136,10 @@ impl<'de> Run<'de> {
                 arity: 0,
                 callable: |_, _| {
                     let start = SystemTime::now();
-                    let since_the_epoch = start.duration_since(UNIX_EPOCH).unwrap();
-
+                    let since_the_epoch = start.duration_since(UNIX_EPOCH).expect(
+                        "We should always be able to calculate this if system clock is set",
+                    );
+                    #[allow(clippy::cast_precision_loss)]
                     Ok(EvaluatedValue::Number(since_the_epoch.as_millis() as f64))
                 },
             }),
@@ -147,25 +156,25 @@ impl<'de> Run<'de> {
     }
 }
 
-impl Iterator for Run<'_> {
+impl Iterator for Interpreter<'_> {
     type Item = Result<(), u8>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let stmt = self.parser.next()?;
-        match stmt {
-            Ok(s) => {
-                let eval_stmt = evaluate_statement(&s, self);
-                match eval_stmt {
-                    Ok(()) => Some(Ok(())),
-                    Err(_) => Some(Err(70)),
-                }
+        stmt.map_or(Some(Err(65)), |s| {
+            let eval_stmt = evaluate_statement(&s, self);
+            match eval_stmt {
+                Ok(()) => Some(Ok(())),
+                Err(_) => Some(Err(70)),
             }
-            Err(_) => Some(Err(65)),
-        }
+        })
     }
 }
 
-fn evaluate_statement<'de>(stmt: &Stmt<'de>, interpreter: &mut Run<'de>) -> Result<(), String> {
+fn evaluate_statement<'de>(
+    stmt: &Stmt<'de>,
+    interpreter: &mut Interpreter<'de>,
+) -> Result<(), String> {
     match stmt {
         Stmt::Print(expr) => {
             let val = evaluate_expression(expr, interpreter)?;
@@ -220,7 +229,7 @@ fn evaluate_statement<'de>(stmt: &Stmt<'de>, interpreter: &mut Run<'de>) -> Resu
 
 fn evaluate_expression<'de>(
     expr: &Expr<'de>,
-    interpreter: &mut Run<'de>,
+    interpreter: &mut Interpreter<'de>,
     // environment: &mut Environment<'de>,
     // globals: &mut Environment<'de>,
 ) -> Result<EvaluatedValue, String> {
@@ -329,7 +338,7 @@ fn evaluate_expression<'de>(
                             true => Ok(EvaluatedValue::Bool(false)),
                             false => Ok(EvaluatedValue::Bool(true)),
                         },
-                        EvaluatedValue::NativeFunction(f) => todo!(),
+                        EvaluatedValue::NativeFunction(_f) => todo!(),
                     },
                 ),
                 TokenType::Minus => r.as_ref().map_or_else(
@@ -339,7 +348,7 @@ fn evaluate_expression<'de>(
                         EvaluatedValue::Number(n) => Ok(EvaluatedValue::Number(-n)),
                         EvaluatedValue::Nil => todo!(),
                         EvaluatedValue::Bool(_) => todo!(),
-                        EvaluatedValue::NativeFunction(f) => todo!(),
+                        EvaluatedValue::NativeFunction(_f) => todo!(),
                     },
                 ),
                 // TODO: Make unrepresentable by narrowing `operator` to `UnaryOperator:Not|Negate`
@@ -394,7 +403,7 @@ fn evaluate_expression<'de>(
         }
         Expr::Call {
             callee,
-            paren,
+            paren: _,
             arguments,
         } => {
             let callee_fn = evaluate_expression(callee, interpreter)?;
@@ -406,8 +415,16 @@ fn evaluate_expression<'de>(
 
             match callee_fn {
                 EvaluatedValue::NativeFunction(native_function) => {
-                    let fun = native_function.call(interpreter, &args);
-                    return fun;
+                    if native_function.arity(interpreter) as usize != args.len() {
+                        eprintln!(
+                            "Incorrect number of arguments passed to {}. Expected {} Found {}",
+                            native_function.name,
+                            native_function.arity,
+                            args.len()
+                        );
+                        return Err("Incorrect arity".to_string());
+                    }
+                    native_function.call(interpreter, &args)
                 }
                 _ => todo!(),
             }

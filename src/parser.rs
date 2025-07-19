@@ -205,7 +205,7 @@ impl<'de> Parser<'de> {
         };
         if let Some(init) = initializer {
             body = Stmt::Block(vec![init, body]);
-        };
+        }
         Ok(body)
     }
 
