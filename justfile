@@ -18,4 +18,4 @@ test:
 t:test
 
 lox_run:build
-    cargo run run test.lox 
+    cargo run run test.lox
