@@ -400,8 +400,7 @@ fn evaluate_expression<'de>(
             if let EvaluatedValue::NativeFunction(native_function) = callee_fn {
                 if native_function.arity(interpreter) as usize != args.len() {
                     eprintln!(
-                        "Incorrect number of arguments passed to {}. Expected {} Found {}",
-                        native_function.name,
+                        "Expected {} arguments but got {}.",
                         native_function.arity,
                         args.len()
                     );
