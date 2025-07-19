@@ -27,3 +27,4 @@ repos:
       pass_filenames: false
       files: \.rs$
       args: []
+      stages: [pre-push]
