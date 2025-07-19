@@ -236,7 +236,7 @@ impl<'de> Iterator for Lexer<'de> {
                 },
                 _ => {
                         return Some(Err(
-                            miette! {labels = vec![LabeledSpan::at(self.byte-c.len_utf8()..self.byte, "this character")], 
+                            miette! {labels = vec![LabeledSpan::at(self.byte-c.len_utf8()..self.byte, "this character")],
                             "[line {}] Error: Unexpected character: {c}", self.line_num}
                             .with_source_code(self.whole.to_string()),
                         ))

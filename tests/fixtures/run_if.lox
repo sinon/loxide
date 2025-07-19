@@ -12,7 +12,7 @@ if (a = true) {
 var stage = "unknown";
 var age = 50;
 if (age < 18) { stage = "child"; }
-if (age >= 18) { stage = "adult"; } 
+if (age >= 18) { stage = "adult"; }
 print stage;  // "adult"
 
 var isAdult = age >= 18;
