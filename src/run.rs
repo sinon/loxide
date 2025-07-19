@@ -3,15 +3,10 @@
 //! Responsible for running the AST and returning the computed values
 //!
 
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    fmt,
-    rc::Rc,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
 use crate::{
+    builtins,
     eval::EvaluatedValue,
     lexer::TokenType,
     parser::{Expr, LiteralAtom, Parser, Stmt},
@@ -134,14 +129,7 @@ impl<'de> Interpreter<'de> {
             EvaluatedValue::NativeFunction(NativeFunction {
                 name: "clock".to_string(),
                 arity: 0,
-                callable: |_, _| {
-                    let start = SystemTime::now();
-                    let since_the_epoch = start.duration_since(UNIX_EPOCH).expect(
-                        "We should always be able to calculate this if system clock is set",
-                    );
-                    #[allow(clippy::cast_precision_loss)]
-                    Ok(EvaluatedValue::Number(since_the_epoch.as_millis() as f64))
-                },
+                callable: builtins::clock,
             }),
         );
         let globals = Environment {
