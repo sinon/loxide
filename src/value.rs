@@ -1,4 +1,4 @@
-use std::fmt::{Display, write};
+use std::fmt::Display;
 
 use crate::interpreter::NativeFunction;
 
@@ -25,11 +25,15 @@ pub enum EvaluatedValue {
 impl EvaluatedValue {
     pub(crate) const fn is_truthy(&self) -> bool {
         match self {
-            Self::String(_) | Self::Number(_) => true,
+            Self::String(_)
+            | Self::Number(_)
+            | Self::NativeFunction(_)
+            | Self::LoxFunction {
+                name: _,
+                binding: _,
+            } => true,
             Self::Nil => false,
             Self::Bool(b) => *b,
-            Self::NativeFunction(_f) => true,
-            Self::LoxFunction { name, binding } => true,
         }
     }
 }
@@ -37,11 +41,15 @@ impl EvaluatedValue {
 impl From<EvaluatedValue> for bool {
     fn from(val: EvaluatedValue) -> Self {
         match val {
-            EvaluatedValue::String(_) | EvaluatedValue::Number(_) => true,
+            EvaluatedValue::String(_)
+            | EvaluatedValue::Number(_)
+            | EvaluatedValue::NativeFunction(_)
+            | EvaluatedValue::LoxFunction {
+                name: _,
+                binding: _,
+            } => true,
             EvaluatedValue::Nil => false,
             EvaluatedValue::Bool(b) => b,
-            EvaluatedValue::NativeFunction(_f) => true,
-            EvaluatedValue::LoxFunction { name, binding } => true,
         }
     }
 }
@@ -54,7 +62,7 @@ impl Display for EvaluatedValue {
             Self::Nil => write!(f, "nil"),
             Self::Bool(b) => write!(f, "{b:}"),
             Self::NativeFunction(native_fn) => write!(f, "{native_fn:?}"),
-            Self::LoxFunction { name, binding } => write!(f, "{name:?}"),
+            Self::LoxFunction { name, binding: _ } => write!(f, "{name:?}"),
         }
     }
 }

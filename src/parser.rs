@@ -4,10 +4,7 @@
 //!
 //! Uses a recursive desecent parser. To transform the token stream into
 //! `Expr`
-use crate::{
-    interpreter,
-    lexer::{Lexer, Token, TokenType},
-};
+use crate::lexer::{Lexer, Token, TokenType};
 
 /// `Parser` is responsible for iterating over the token stream from `Lexer`
 /// and converting the lexed `Token` into `Expr` which represent an Abstract Syntax Tree (AST)
@@ -150,11 +147,11 @@ impl<'de> Parser<'de> {
 
     fn function(&mut self, kind: &str) -> Result<Stmt<'de>, String> {
         let name = self
-            .consume(&TokenType::Identifier, &format!("Expect {} name.", kind))?
+            .consume(&TokenType::Identifier, &format!("Expect {kind} name."))?
             .clone();
         self.consume(
             &TokenType::LeftParen,
-            &format!("Expect '(' after {} name.", kind),
+            &format!("Expect '(' after {kind} name."),
         )?;
         let mut parameters = Vec::new();
         if !self.check(&TokenType::RightParen) {

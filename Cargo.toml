@@ -5,16 +5,16 @@ authors = ["Rob Hand <146272+sinon@users.noreply.github.com>"]
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
-keywords = ["rust", "png"]
+keywords = ["rust", "lox", "interpreter"]
 homepage = "https://github.com/sinon/loxide"
 repository = "https://github.com/sinon/loxide"
 
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
 miette = { version = "7.4.0", features = ["fancy"] }
-rstest = "0.23.0"
 
 [dev-dependencies]
+rstest = "0.23.0"
 assert_cmd = "2.0.14"
 insta = { version = "1.41.1", features = ["yaml"] }
 

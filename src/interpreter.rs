@@ -1,4 +1,4 @@
-//! Run module
+//! Interpreter module
 //!
 //! Responsible for running the AST and returning the computed values
 //!
@@ -51,22 +51,26 @@ impl Callable for NativeFunction {
     }
 }
 
+/// A user defined lox function
 #[derive(Debug)]
 pub struct LoxFunction<'de> {
+    /// The identifier
     pub name: Token<'de>,
+    /// The parameter values
     pub parameters: Vec<Token<'de>>,
+    /// The body of the function
     pub body: Vec<Stmt<'de>>,
 }
 
 impl Callable for LoxFunction<'_> {
     fn arity(&self, _interpreter: &Interpreter) -> u8 {
-        self.parameters.len() as u8
+        u8::try_from(self.parameters.len()).expect("arity < 255 is enforced by parser")
     }
 
     fn call(
         &self,
-        interpreter: &mut Interpreter,
-        args: &[EvaluatedValue],
+        _interpreter: &mut Interpreter,
+        _args: &[EvaluatedValue],
     ) -> Result<EvaluatedValue, String> {
         todo!()
     }
@@ -163,7 +167,7 @@ impl<'de> Interpreter<'de> {
             parser: Parser::new(input),
             environment: Environment::new(),
             globals,
-            lox_functions: Default::default(),
+            lox_functions: HashMap::new(),
             counter: 0,
         }
     }
@@ -185,7 +189,7 @@ impl Iterator for Interpreter<'_> {
 }
 
 impl Interpreter<'_> {
-    fn alloc_id(&mut self) -> u64 {
+    const fn alloc_id(&mut self) -> u64 {
         self.counter += 1;
         self.counter
     }
@@ -262,8 +266,7 @@ fn evaluate_statement<'de>(
                 body: body.clone(),
             };
             interpreter.lox_functions.insert(func_id, lox_fun);
-            interpreter.globals.insert(name, lox_fun);
-            ()
+            // interpreter.globals.data.insert(&name.to_string(), lox_fun);
         }
     }
     Ok(())
@@ -379,7 +382,10 @@ fn evaluate_expression<'de>(
                             false => Ok(EvaluatedValue::Bool(true)),
                         },
                         EvaluatedValue::NativeFunction(_f) => todo!(),
-                        EvaluatedValue::LoxFunction { name, binding } => todo!(),
+                        EvaluatedValue::LoxFunction {
+                            name: _,
+                            binding: _,
+                        } => todo!(),
                     },
                 ),
                 TokenType::Minus => r.as_ref().map_or_else(
@@ -390,7 +396,10 @@ fn evaluate_expression<'de>(
                         EvaluatedValue::Nil => todo!(),
                         EvaluatedValue::Bool(_) => todo!(),
                         EvaluatedValue::NativeFunction(_f) => todo!(),
-                        EvaluatedValue::LoxFunction { name, binding } => todo!(),
+                        EvaluatedValue::LoxFunction {
+                            name: _,
+                            binding: _,
+                        } => todo!(),
                     },
                 ),
                 // TODO: Make unrepresentable by narrowing `operator` to `UnaryOperator:Not|Negate`
