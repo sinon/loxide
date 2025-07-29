@@ -16,10 +16,7 @@ pub enum EvaluatedValue {
     /// builtin fn
     NativeFunction(NativeFunction),
     /// fn
-    LoxFunction {
-        name: String,
-        binding: Option<Box<EvaluatedValue>>,
-    },
+    LoxFunction { name: String, func_id: u64 },
 }
 
 impl EvaluatedValue {
@@ -28,10 +25,7 @@ impl EvaluatedValue {
             Self::String(_)
             | Self::Number(_)
             | Self::NativeFunction(_)
-            | Self::LoxFunction {
-                name: _,
-                binding: _,
-            } => true,
+            | Self::LoxFunction { .. } => true,
             Self::Nil => false,
             Self::Bool(b) => *b,
         }
@@ -44,10 +38,7 @@ impl From<EvaluatedValue> for bool {
             EvaluatedValue::String(_)
             | EvaluatedValue::Number(_)
             | EvaluatedValue::NativeFunction(_)
-            | EvaluatedValue::LoxFunction {
-                name: _,
-                binding: _,
-            } => true,
+            | EvaluatedValue::LoxFunction { .. } => true,
             EvaluatedValue::Nil => false,
             EvaluatedValue::Bool(b) => b,
         }
@@ -62,7 +53,7 @@ impl Display for EvaluatedValue {
             Self::Nil => write!(f, "nil"),
             Self::Bool(b) => write!(f, "{b:}"),
             Self::NativeFunction(native_fn) => write!(f, "{native_fn:?}"),
-            Self::LoxFunction { name, binding: _ } => write!(f, "{name:?}"),
+            Self::LoxFunction { name, func_id } => write!(f, "{name:?}-{func_id:?}"),
         }
     }
 }

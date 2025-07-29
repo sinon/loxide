@@ -12,15 +12,6 @@ use crate::{
     value::EvaluatedValue,
 };
 
-trait Callable {
-    fn arity(&self, interpreter: &Interpreter) -> u8;
-    fn call(
-        &self,
-        interpreter: &mut Interpreter,
-        args: &[EvaluatedValue],
-    ) -> Result<EvaluatedValue, String>;
-}
-
 /// `NativeFunction` is used to represent builtin native functions
 #[derive(Clone)]
 pub struct NativeFunction {
@@ -38,7 +29,7 @@ impl fmt::Debug for NativeFunction {
     }
 }
 
-impl Callable for NativeFunction {
+impl NativeFunction {
     fn arity(&self, _interpreter: &Interpreter) -> u8 {
         self.arity
     }
@@ -52,7 +43,7 @@ impl Callable for NativeFunction {
 }
 
 /// A user defined lox function
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LoxFunction<'de> {
     /// The identifier
     pub name: Token<'de>,
@@ -62,17 +53,27 @@ pub struct LoxFunction<'de> {
     pub body: Vec<Stmt<'de>>,
 }
 
-impl Callable for LoxFunction<'_> {
-    fn arity(&self, _interpreter: &Interpreter) -> u8 {
+impl<'de> LoxFunction<'de> {
+    fn arity(&self) -> u8 {
         u8::try_from(self.parameters.len()).expect("arity < 255 is enforced by parser")
     }
 
     fn call(
         &self,
-        _interpreter: &mut Interpreter,
-        _args: &[EvaluatedValue],
+        interpreter: &mut Interpreter<'de>,
+        args: &[EvaluatedValue],
     ) -> Result<EvaluatedValue, String> {
-        todo!()
+        let _args_env: HashMap<_, _> = self
+            .parameters
+            .iter()
+            .zip(args.iter())
+            .map(|(param, arg)| (param.origin.clone(), (Some(arg.clone()),)))
+            .collect();
+        let saved_env = interpreter.environment.clone();
+        let block = Stmt::Block(self.body.clone());
+        evaluate_statement(&block, interpreter)?;
+        interpreter.environment = saved_env;
+        todo!("Implement the `call` fn for `LoxFunction`")
     }
 }
 
@@ -133,7 +134,10 @@ impl<'de> Environment<'de> {
                     p.assign(key, value)?;
                     Ok(())
                 }
-                None => todo!(),
+                None => {
+                    self.data.insert(key, value.clone());
+                    Ok(())
+                }
             },
         }
     }
@@ -171,6 +175,17 @@ impl<'de> Interpreter<'de> {
             counter: 0,
         }
     }
+
+    pub(crate) fn get_lox_fn(&self, id: u64) -> &LoxFunction {
+        match self.lox_functions.get(&id) {
+            Some(func) => func,
+            None => panic!("# TODO Improve error handling for `get_lox_fn`",),
+        }
+    }
+    const fn alloc_id(&mut self) -> u64 {
+        self.counter += 1;
+        self.counter
+    }
 }
 
 impl Iterator for Interpreter<'_> {
@@ -185,13 +200,6 @@ impl Iterator for Interpreter<'_> {
                 Err(_) => Some(Err(70)),
             }
         })
-    }
-}
-
-impl Interpreter<'_> {
-    const fn alloc_id(&mut self) -> u64 {
-        self.counter += 1;
-        self.counter
     }
 }
 
@@ -253,19 +261,19 @@ fn evaluate_statement<'de>(
             body,
         } => {
             let func_id = interpreter.alloc_id();
-            // interpreter.environment.assign(
-            //     &'de key,
-            //     &EvaluatedValue::LoxFunction {
-            //         name: name.to_string(),
-            //         binding: None,
-            //     },
-            // );
             let lox_fun = LoxFunction {
                 name: name.clone(),
                 parameters: parameters.clone(),
                 body: body.clone(),
             };
             interpreter.lox_functions.insert(func_id, lox_fun);
+            interpreter.environment.assign(
+                &name.origin,
+                &EvaluatedValue::LoxFunction {
+                    name: name.to_string(),
+                    func_id: func_id,
+                },
+            )?;
             // interpreter.globals.data.insert(&name.to_string(), lox_fun);
         }
     }
@@ -384,7 +392,7 @@ fn evaluate_expression<'de>(
                         EvaluatedValue::NativeFunction(_f) => todo!(),
                         EvaluatedValue::LoxFunction {
                             name: _,
-                            binding: _,
+                            func_id: _,
                         } => todo!(),
                     },
                 ),
@@ -398,7 +406,7 @@ fn evaluate_expression<'de>(
                         EvaluatedValue::NativeFunction(_f) => todo!(),
                         EvaluatedValue::LoxFunction {
                             name: _,
-                            binding: _,
+                            func_id: _,
                         } => todo!(),
                     },
                 ),
@@ -419,7 +427,7 @@ fn evaluate_expression<'de>(
             Some(v) => Ok(v),
             None => interpreter.globals.get(token.origin).map_or_else(
                 || {
-                    eprintln!("Undefined variable '{}'.", token.origin);
+                    eprintln!("Undefined variable `{}`.", token.origin);
                     eprintln!("[line {}]", token.line);
                     Err("Undefined var".to_string())
                 },
@@ -462,19 +470,15 @@ fn evaluate_expression<'de>(
             for arg in arguments {
                 args.push(evaluate_expression(arg, interpreter)?);
             }
-            if let EvaluatedValue::NativeFunction(native_function) = callee_fn {
-                if native_function.arity(interpreter) as usize != args.len() {
-                    eprintln!(
-                        "Expected {} arguments but got {}.",
-                        native_function.arity,
-                        args.len()
-                    );
-                    return Err("Incorrect arity".to_string());
+
+            match &callee_fn {
+                EvaluatedValue::NativeFunction(f) => f.call(interpreter, &args),
+                EvaluatedValue::LoxFunction { func_id, .. } => {
+                    let f = interpreter.get_lox_fn(*func_id);
+                    // todo!("Fix lifetime issue with f.call")
+                    f.call(interpreter, &args)
                 }
-                native_function.call(interpreter, &args)
-            } else {
-                eprintln!("Can only call function and classes.");
-                Err("Can only call functions and classes.".to_string())
+                _ => Err("not callable".to_string()),
             }
         }
     }
