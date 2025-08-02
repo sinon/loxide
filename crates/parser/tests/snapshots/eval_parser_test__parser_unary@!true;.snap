@@ -1,0 +1,5 @@
+---
+source: crates/parser/tests/eval_parser_test.rs
+description: "!true;"
+---
+ExpressionStatement(Unary { operator: Token { token_type: Bang, origin: "!", line: 1 }, right: Literal(Bool(true)) })

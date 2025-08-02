@@ -1,0 +1,5 @@
+---
+source: crates/parser/tests/eval_parser_test.rs
+description: "(\"foo\");"
+---
+ExpressionStatement(Grouping(Literal(String("foo"))))

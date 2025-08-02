@@ -1,0 +1,21 @@
+[package]
+name = "loxide"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+keywords.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+clap = { version = "4.5.23", features = ["derive"] }
+lexer = { path = "../lexer" }
+parser = { path = "../parser" }
+miette = { workspace = true }
+
+[dev-dependencies]
+rstest = "0.23.0"
+assert_cmd = "2.0.14"
+insta = { version = "1.41.1", features = ["yaml"] }

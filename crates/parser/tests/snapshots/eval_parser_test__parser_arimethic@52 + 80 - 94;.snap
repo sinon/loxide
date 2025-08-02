@@ -1,0 +1,5 @@
+---
+source: crates/parser/tests/eval_parser_test.rs
+description: 52 + 80 - 94;
+---
+ExpressionStatement(Binary { left: Binary { left: Literal(Number(52.0)), operator: Token { token_type: Plus, origin: "+", line: 1 }, right: Literal(Number(80.0)) }, operator: Token { token_type: Minus, origin: "-", line: 1 }, right: Literal(Number(94.0)) })

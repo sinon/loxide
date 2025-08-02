@@ -1,0 +1,5 @@
+---
+source: crates/parser/tests/eval_parser_test.rs
+description: 16 * 38 / 58;
+---
+ExpressionStatement(Binary { left: Binary { left: Literal(Number(16.0)), operator: Token { token_type: Star, origin: "*", line: 1 }, right: Literal(Number(38.0)) }, operator: Token { token_type: Slash, origin: "/", line: 1 }, right: Literal(Number(58.0)) })

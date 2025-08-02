@@ -1,0 +1,5 @@
+---
+source: crates/parser/tests/eval_parser_test.rs
+description: 10 != 9;
+---
+ExpressionStatement(Binary { left: Literal(Number(10.0)), operator: Token { token_type: BangEqual, origin: "!=", line: 1 }, right: Literal(Number(9.0)) })

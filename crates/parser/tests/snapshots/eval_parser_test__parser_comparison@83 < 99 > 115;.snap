@@ -1,0 +1,5 @@
+---
+source: crates/parser/tests/eval_parser_test.rs
+description: 83 < 99 > 115;
+---
+ExpressionStatement(Binary { left: Binary { left: Literal(Number(83.0)), operator: Token { token_type: Less, origin: "<", line: 1 }, right: Literal(Number(99.0)) }, operator: Token { token_type: Greater, origin: ">", line: 1 }, right: Literal(Number(115.0)) })
