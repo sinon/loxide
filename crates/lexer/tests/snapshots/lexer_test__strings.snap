@@ -1,7 +1,7 @@
 ---
-source: tests/lexer_test.rs
+source: crates/lexer/tests/lexer_test.rs
 description: "\"\"\n\"string\""
 ---
-- "STRING \"\" "
-- "STRING \"string\" string"
-- EOF  null
+- "Token { token_type: String, origin: \"\", line: 1 }"
+- "Token { token_type: String, origin: \"string\", line: 2 }"
+- "Token { token_type: Eof, origin: \"\", line: 2 }"

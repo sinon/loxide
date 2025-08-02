@@ -1,0 +1,5 @@
+---
+source: crates/lexer/tests/lexer_test.rs
+expression: out
+---
+"Token { token_type: LeftParen, origin: \"(\", line: 1 }\nToken { token_type: LeftParen, origin: \"(\", line: 1 }\nToken { token_type: True, origin: \"true\", line: 1 }\nToken { token_type: RightParen, origin: \")\", line: 1 }\nToken { token_type: RightParen, origin: \")\", line: 1 }\nToken { token_type: Eof, origin: \"\", line: 1 }"

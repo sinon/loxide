@@ -9,7 +9,7 @@ fn test_identifiers() {
 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
     let output = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x:}"))
+        .map(|x| format!("{x:?}"))
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -24,7 +24,7 @@ fn test_keywords() {
     let input = "and class else false for fun if nil or return super this true var while print";
     let output = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x}"))
+        .map(|x| format!("{x:?}"))
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -44,7 +44,7 @@ fn test_numbers() {
 523.";
     let out = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x}"))
+        .map(|x| format!("{x:?}"))
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -59,7 +59,7 @@ fn test_punctuators() {
     let input = "(){};,+-*!===<=>=!=<>/.=!";
     let out = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x}"))
+        .map(|x| format!("{x:?}"))
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -75,7 +75,7 @@ fn test_strings() {
 \"string\"";
     let out = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x}"))
+        .map(|x| format!("{x:?}"))
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -95,7 +95,7 @@ fn test_whitespace() {
 end//";
     let out = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x}"))
+        .map(|x| format!("{x:?}"))
         .collect::<Vec<String>>();
 
     insta::with_settings!({
@@ -123,13 +123,10 @@ fn test_errors() {
 fn test_group_literal() {
     let out = Lexer::new("((true))")
         .filter_map(Result::ok)
-        .map(|x| format!("{x}"))
+        .map(|x| format!("{x:?}"))
         .collect::<Vec<String>>()
         .join("\n");
-    assert_eq!(
-        out,
-        "LEFT_PAREN ( null\nLEFT_PAREN ( null\nTRUE true null\nRIGHT_PAREN ) null\nRIGHT_PAREN ) null\nEOF  null"
-    );
+    assert_yaml_snapshot!(out);
 }
 
 #[test]
@@ -137,7 +134,7 @@ fn test_empty_handling() {
     let out: String = Lexer::new("")
         .filter_map(Result::ok)
         .fold(String::new(), |mut out, t| {
-            let _ = write!(out, "{t}");
+            let _ = write!(out, "{t:?}");
             out
         });
     assert_yaml_snapshot!(out);

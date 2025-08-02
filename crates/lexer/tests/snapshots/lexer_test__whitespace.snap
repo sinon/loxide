@@ -1,9 +1,9 @@
 ---
-source: tests/lexer_test.rs
+source: crates/lexer/tests/lexer_test.rs
 description: "space    tabs\t\t\t\tnewlines\n\n//\n\n\nend//"
 ---
-- IDENTIFIER space null
-- IDENTIFIER tabs null
-- IDENTIFIER newlines null
-- IDENTIFIER end null
-- EOF  null
+- "Token { token_type: Identifier, origin: \"space\", line: 1 }"
+- "Token { token_type: Identifier, origin: \"tabs\", line: 1 }"
+- "Token { token_type: Identifier, origin: \"newlines\", line: 1 }"
+- "Token { token_type: Identifier, origin: \"end\", line: 6 }"
+- "Token { token_type: Eof, origin: \"\", line: 6 }"

@@ -3,8 +3,6 @@
 //! Responsible for transforming a given input str into a Iterator of `Result<Token>`
 #![allow(clippy::too_many_lines)]
 
-use std::fmt;
-
 use miette::{Error, LabeledSpan, Result, miette};
 
 /// `Token` is formed of a token type (`TokenType`) and a reference to a str in the input string
@@ -66,53 +64,6 @@ pub enum TokenType {
     While,
     // Misc
     Eof,
-}
-
-impl fmt::Display for Token<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let i = self.origin;
-        match self.token_type {
-            TokenType::RightParen => write!(f, "RIGHT_PAREN {i} null"),
-            TokenType::LeftParen => write!(f, "LEFT_PAREN {i} null"),
-            TokenType::RightBrace => write!(f, "RIGHT_BRACE {i} null"),
-            TokenType::LeftBrace => write!(f, "LEFT_BRACE {i} null"),
-            TokenType::Comma => write!(f, "COMMA {i} null"),
-            TokenType::Dot => write!(f, "DOT {i} null"),
-            TokenType::Minus => write!(f, "MINUS {i} null"),
-            TokenType::Plus => write!(f, "PLUS {i} null"),
-            TokenType::Star => write!(f, "STAR {i} null"),
-            TokenType::Semicolon => write!(f, "SEMICOLON {i} null"),
-            TokenType::Equal => write!(f, "EQUAL {i} null"),
-            TokenType::EqualEqual => write!(f, "EQUAL_EQUAL {i} null"),
-            TokenType::Bang => write!(f, "BANG {i} null"),
-            TokenType::BangEqual => write!(f, "BANG_EQUAL {i} null"),
-            TokenType::Less => write!(f, "LESS {i} null"),
-            TokenType::LessEqual => write!(f, "LESS_EQUAL {i} null"),
-            TokenType::Greater => write!(f, "GREATER {i} null"),
-            TokenType::GreaterEqual => write!(f, "GREATER_EQUAL {i} null"),
-            TokenType::Slash => write!(f, "SLASH {i} null"),
-            TokenType::String => write!(f, "STRING \"{i}\" {i}"),
-            TokenType::Identifier => write!(f, "IDENTIFIER {i} null"),
-            TokenType::Number(n) => write!(f, "NUMBER {i} {n:?}"),
-            TokenType::And => write!(f, "AND {i} null"),
-            TokenType::Class => write!(f, "CLASS {i} null"),
-            TokenType::Else => write!(f, "ELSE {i} null"),
-            TokenType::False => write!(f, "FALSE {i} null"),
-            TokenType::Fun => write!(f, "FUN {i} null"),
-            TokenType::For => write!(f, "FOR {i} null"),
-            TokenType::If => write!(f, "IF {i} null"),
-            TokenType::Nil => write!(f, "NIL {i} null"),
-            TokenType::Or => write!(f, "OR {i} null"),
-            TokenType::Print => write!(f, "PRINT {i} null"),
-            TokenType::Return => write!(f, "RETURN {i} null"),
-            TokenType::Super => write!(f, "SUPER {i} null"),
-            TokenType::This => write!(f, "THIS {i} null"),
-            TokenType::True => write!(f, "TRUE {i} null"),
-            TokenType::Var => write!(f, "VAR {i} null"),
-            TokenType::While => write!(f, "WHILE {i} null"),
-            TokenType::Eof => write!(f, "EOF  null"),
-        }
-    }
 }
 
 /// `Lexer` is responsible for iterating over a input string and emitting `Token` for
