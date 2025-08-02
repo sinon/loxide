@@ -2,5 +2,5 @@
 source: crates/lexer/tests/lexer_test.rs
 description: "\"\"\n\"string\""
 ---
-- "Token { token_type: String, span: Span { start: 0, end: 1 }, origin: \"\\\"\", line: 1 } - `\"\"`"
-- "Token { token_type: String, span: Span { start: 3, end: 10 }, origin: \"\\\"\", line: 2 } - `\"string\"`"
+- "Token { token_type: String, span: Span { start: 0, end: 1 }, origin: \"\", line: 1 } - `\"\"`"
+- "Token { token_type: String, span: Span { start: 3, end: 10 }, origin: \"string\", line: 2 } - `\"string\"`"
