@@ -41,16 +41,16 @@ impl NativeFunction {
 
 /// A user defined lox function
 #[derive(Debug, Clone)]
-pub struct LoxFunction<'de> {
+pub struct LoxFunction {
     /// The identifier
-    pub name: Token<'de>,
+    pub name: Token,
     /// The parameter values
-    pub parameters: Vec<Token<'de>>,
+    pub parameters: Vec<Token>,
     /// The body of the function
-    pub body: Vec<Stmt<'de>>,
+    pub body: Vec<Stmt>,
 }
 
-impl<'de> LoxFunction<'de> {
+impl LoxFunction {
     #[allow(dead_code)]
     fn arity(&self) -> u8 {
         u8::try_from(self.parameters.len()).expect("arity < 255 is enforced by parser")
@@ -58,14 +58,14 @@ impl<'de> LoxFunction<'de> {
     #[allow(dead_code)]
     fn call(
         &self,
-        interpreter: &mut Interpreter<'de>,
+        interpreter: &mut Interpreter,
         args: &[EvaluatedValue],
     ) -> Result<EvaluatedValue, String> {
         let _args_env: HashMap<_, _> = self
             .parameters
             .iter()
             .zip(args.iter())
-            .map(|(param, arg)| (param.origin, (Some(arg.clone()),)))
+            .map(|(param, arg)| (param.origin.clone(), (Some(arg.clone()),)))
             .collect();
         let saved_env = interpreter.environment.clone();
         let block = Stmt::Block(self.body.clone());
@@ -78,36 +78,36 @@ impl<'de> LoxFunction<'de> {
 /// `Interpreter`
 /// responsible for iterating over the rusults of parser
 /// and evaluating the statements and expressions encountered
-pub struct Interpreter<'de> {
-    parser: Parser<'de>,
-    environment: Environment<'de>,
-    globals: Environment<'de>,
-    lox_functions: HashMap<u64, LoxFunction<'de>>,
+pub struct Interpreter {
+    parser: Parser,
+    environment: Environment,
+    globals: Environment,
+    lox_functions: HashMap<u64, LoxFunction>,
     counter: u64,
 }
 
 #[derive(Debug, Clone)]
-struct Environment<'de> {
-    data: HashMap<&'de str, EvaluatedValue>,
-    enclosing: Option<Rc<RefCell<Environment<'de>>>>,
+struct Environment {
+    data: HashMap<String, EvaluatedValue>,
+    enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
-impl<'de> Environment<'de> {
+impl Environment {
     fn new() -> Self {
-        Environment {
+        Self {
             data: HashMap::new(),
             enclosing: None,
         }
     }
 
     fn from_parent(enclosing: Self) -> Self {
-        Environment {
+        Self {
             data: HashMap::new(),
             enclosing: Some(Rc::new(RefCell::new(enclosing))),
         }
     }
 
-    fn get(&self, key: &'de str) -> Option<EvaluatedValue> {
+    fn get(&self, key: &str) -> Option<EvaluatedValue> {
         // get the given key from the environment
         // checks the current scope level, then works up through the enclosing env
         self.data.get(key).map_or_else(
@@ -120,8 +120,8 @@ impl<'de> Environment<'de> {
         )
     }
 
-    fn assign(&mut self, key: &'de str, value: &EvaluatedValue) -> Result<(), String> {
-        match self.data.get(key) {
+    fn assign(&mut self, key: String, value: &EvaluatedValue) -> Result<(), String> {
+        match self.data.get(&key) {
             Some(_) => {
                 self.data.insert(key, value.clone());
                 Ok(())
@@ -138,22 +138,22 @@ impl<'de> Environment<'de> {
             }
         }
     }
-    fn var_assign(&mut self, key: &'de str, value: &EvaluatedValue) {
+    fn var_assign(&mut self, key: String, value: &EvaluatedValue) {
         // var <identifier> = expr;
         // Only updates the current environment scope
         self.data.insert(key, value.clone());
     }
 }
 
-impl<'de> Interpreter<'de> {
+impl Interpreter {
     /// Create a new `Interpreter` to process a given input source code
     /// # Panics
     /// Will panic if `SystemTime::now()` returns value before `UNIX_EPOCH`
     #[must_use]
-    pub fn new(input: &'de str) -> Self {
+    pub fn new(input: &str) -> Self {
         let mut global_data = HashMap::new();
         global_data.insert(
-            "clock",
+            "clock".to_string(),
             EvaluatedValue::NativeFunction(NativeFunction {
                 name: "clock".to_string(),
                 arity: 0,
@@ -185,7 +185,7 @@ impl<'de> Interpreter<'de> {
     }
 }
 
-impl Iterator for Interpreter<'_> {
+impl Iterator for Interpreter {
     type Item = Result<(), u8>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -200,10 +200,7 @@ impl Iterator for Interpreter<'_> {
     }
 }
 
-fn evaluate_statement<'de>(
-    stmt: &Stmt<'de>,
-    interpreter: &mut Interpreter<'de>,
-) -> Result<(), String> {
+fn evaluate_statement(stmt: &Stmt, interpreter: &mut Interpreter) -> Result<(), String> {
     match stmt {
         Stmt::Print(expr) => {
             let val = evaluate_expression(expr, interpreter)?;
@@ -223,12 +220,14 @@ fn evaluate_statement<'de>(
         Stmt::Var(name, expr) => match expr {
             Some(v) => {
                 let evalutated_val = evaluate_expression(v, interpreter)?;
-                interpreter.environment.var_assign(name, &evalutated_val);
+                interpreter
+                    .environment
+                    .var_assign(name.to_string(), &evalutated_val);
             }
             None => {
                 interpreter
                     .environment
-                    .var_assign(name, &EvaluatedValue::Nil);
+                    .var_assign(name.to_string(), &EvaluatedValue::Nil);
             }
         },
         Stmt::Block(stmts) => {
@@ -265,7 +264,7 @@ fn evaluate_statement<'de>(
             };
             interpreter.lox_functions.insert(func_id, lox_fun);
             interpreter.environment.assign(
-                name.origin,
+                name.origin.clone(),
                 &EvaluatedValue::LoxFunction {
                     name: name.origin.to_string(),
                     func_id,
@@ -277,9 +276,9 @@ fn evaluate_statement<'de>(
     Ok(())
 }
 
-fn evaluate_expression<'de>(
-    expr: &Expr<'de>,
-    interpreter: &mut Interpreter<'de>,
+fn evaluate_expression(
+    expr: &Expr,
+    interpreter: &mut Interpreter,
 ) -> Result<EvaluatedValue, String> {
     match expr {
         Expr::Binary {
@@ -422,9 +421,9 @@ fn evaluate_expression<'de>(
             LiteralAtom::Bool(b) => Ok(EvaluatedValue::Bool(*b)),
         },
         Expr::Grouping(expr) => evaluate_expression(expr, interpreter),
-        Expr::Variable(token) => match interpreter.environment.get(token.origin) {
+        Expr::Variable(token) => match interpreter.environment.get(&token.origin) {
             Some(v) => Ok(v),
-            None => interpreter.globals.get(token.origin).map_or_else(
+            None => interpreter.globals.get(&token.origin).map_or_else(
                 || {
                     eprintln!("Undefined variable `{}`.", token.origin);
                     eprintln!("[line {}]", token.line);
@@ -436,7 +435,7 @@ fn evaluate_expression<'de>(
         Expr::Assign(name, expr) => {
             if interpreter.environment.get(name).is_some() {
                 let eval_expr = evaluate_expression(expr, interpreter)?;
-                interpreter.environment.assign(name, &eval_expr)?;
+                interpreter.environment.assign(name.clone(), &eval_expr)?;
                 Ok(eval_expr)
             } else {
                 eprintln!("Undefined variable '{name}'.");

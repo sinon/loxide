@@ -1,5 +1,5 @@
 use insta::assert_yaml_snapshot;
-use lexer::{Lexer, Token};
+use lexer::{Lexer, Token, TokenType};
 use miette::Error;
 use std::fmt::Write;
 
@@ -9,7 +9,11 @@ fn test_identifiers() {
 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
     let output = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x:?}"))
+        .filter(|t| t.token_type != TokenType::Eof)
+        .map(|x| {
+            let s = input[x.span.start..=x.span.end].to_string();
+            format!("{x:?} - `{s}`")
+        })
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -24,7 +28,11 @@ fn test_keywords() {
     let input = "and class else false for fun if nil or return super this true var while print";
     let output = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x:?}"))
+        .filter(|t| t.token_type != TokenType::Eof)
+        .map(|x| {
+            let s = input[x.span.start..=x.span.end].to_string();
+            format!("{x:?} - `{s}`")
+        })
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -42,9 +50,14 @@ fn test_numbers() {
 123.
 90
 523.";
+    println!("len: {}", input.len());
     let out = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x:?}"))
+        .filter(|t| t.token_type != TokenType::Eof)
+        .map(|x| {
+            let s = input[x.span.start..=x.span.end].to_string();
+            format!("{x:?} - `{s}`")
+        })
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -59,7 +72,12 @@ fn test_punctuators() {
     let input = "(){};,+-*!===<=>=!=<>/.=!";
     let out = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x:?}"))
+        .filter(|t| t.token_type != TokenType::Eof)
+        .map(|x| {
+            dbg!(&x);
+            let s = input[x.span.start..=x.span.end].to_string();
+            format!("{x:?} - `{s}`")
+        })
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -73,9 +91,14 @@ fn test_punctuators() {
 fn test_strings() {
     let input = "\"\"
 \"string\"";
-    let out = Lexer::new(input)
+    let lexer = Lexer::new(input);
+    let out = lexer
         .filter_map(Result::ok)
-        .map(|x| format!("{x:?}"))
+        .filter(|t| t.token_type != TokenType::Eof)
+        .map(|x| {
+            let s = input[x.span.start..=x.span.end].to_string();
+            format!("{x:?} - `{s}`")
+        })
         .collect::<Vec<String>>();
     insta::with_settings!({
         description => input,
@@ -91,11 +114,14 @@ fn test_whitespace() {
 
 //
 
-
 end//";
     let out = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x:?}"))
+        .filter(|t| t.token_type != TokenType::Eof)
+        .map(|x| {
+            let s = input[x.span.start..=x.span.end].to_string();
+            format!("{x:?} - {s}")
+        })
         .collect::<Vec<String>>();
 
     insta::with_settings!({
@@ -121,20 +147,32 @@ fn test_errors() {
 
 #[test]
 fn test_group_literal() {
-    let out = Lexer::new("((true))")
+    let input = "((true))";
+    let out = Lexer::new(input)
         .filter_map(Result::ok)
-        .map(|x| format!("{x:?}"))
-        .collect::<Vec<String>>()
-        .join("\n");
-    assert_yaml_snapshot!(out);
+        .filter(|t| t.token_type != TokenType::Eof)
+        .map(|x| {
+            let s = input[x.span.start..=x.span.end].to_string();
+            format!("{x:?} - `{s}`")
+        })
+        .collect::<Vec<String>>();
+
+    insta::with_settings!({
+        description => input,
+        omit_expression => true
+    }, {
+        assert_yaml_snapshot!(out);
+    });
 }
 
 #[test]
 fn test_empty_handling() {
-    let out: String = Lexer::new("")
+    let input = "";
+    let out: String = Lexer::new(input)
         .filter_map(Result::ok)
         .fold(String::new(), |mut out, t| {
-            let _ = write!(out, "{t:?}");
+            let s = input[t.span.start..t.span.end].to_string();
+            let _ = write!(out, "{t:?} - `{s}`");
             out
         });
     assert_yaml_snapshot!(out);

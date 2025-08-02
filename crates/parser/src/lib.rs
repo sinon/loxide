@@ -8,17 +8,17 @@ use lexer::{Lexer, Token, TokenType};
 
 /// `Parser` is responsible for iterating over the token stream from `Lexer`
 /// and converting the lexed `Token` into `Expr` which represent an Abstract Syntax Tree (AST)
-pub struct Parser<'de> {
-    tokens: Vec<Token<'de>>,
+pub struct Parser {
+    tokens: Vec<Token>,
     current: usize,
     parse_failed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 /// `LiteralAtom` represents the types of literals supported by Lox
-pub enum LiteralAtom<'de> {
+pub enum LiteralAtom {
     /// `String` literal for example `"foo"`
-    String(&'de str),
+    String(String),
     /// Number literal for example `123.1`
     Number(f64),
     /// Nil literal
@@ -29,82 +29,82 @@ pub enum LiteralAtom<'de> {
 
 #[derive(Debug, Clone)]
 /// `Expr` represents a unit of an AST
-pub enum Expr<'de> {
+pub enum Expr {
     /// `Binary` is a binary expression such as `1 * 2`
     Binary {
         /// The left item `Expr` in an expression
-        left: Box<Expr<'de>>,
+        left: Box<Expr>,
         /// The operator to be applied on the `left` and `right` `Expr`
-        operator: Token<'de>,
+        operator: Token,
         /// The right item `Expr` in an expression.
-        right: Box<Expr<'de>>,
+        right: Box<Expr>,
     },
     /// `Unary` is a unary expression such as `!true`
     Unary {
         /// The operator to be applied on the `right` `Expr`
-        operator: Token<'de>,
+        operator: Token,
         /// The expression the unary operator will be applied to
-        right: Box<Expr<'de>>,
+        right: Box<Expr>,
     },
     /// `Literal` is a value
-    Literal(LiteralAtom<'de>),
+    Literal(LiteralAtom),
     /// `Grouping` holds other `Expr` such as `(1 * 2)`
-    Grouping(Box<Expr<'de>>),
+    Grouping(Box<Expr>),
     /// `Variable`
-    Variable(Token<'de>),
+    Variable(Token),
     /// `Assign`
-    Assign(&'de str, Box<Expr<'de>>),
+    Assign(String, Box<Expr>),
     /// `Logical` - `or` and `and`
     Logical {
         /// The left expression of a Logical expression
-        left: Box<Expr<'de>>,
+        left: Box<Expr>,
         /// The operator of a Logical expression
-        operator: Token<'de>,
+        operator: Token,
         /// The right expression of a Logical expression
-        right: Box<Expr<'de>>,
+        right: Box<Expr>,
     },
     /// Function `Call`
     Call {
         /// function to be called
-        callee: Box<Expr<'de>>,
+        callee: Box<Expr>,
         /// paren token
-        paren: Token<'de>,
+        paren: Token,
         /// arguments to be passed to function call
-        arguments: Vec<Expr<'de>>,
+        arguments: Vec<Expr>,
     },
 }
 
 #[derive(Debug, Clone)]
 /// `Stmt` represents the possible statements supported
-pub enum Stmt<'de> {
+pub enum Stmt {
     /// A print statement
-    Print(Expr<'de>),
+    Print(Expr),
     /// An expression statement
-    ExpressionStatement(Expr<'de>),
+    ExpressionStatement(Expr),
     /// Var statement
     // var <identifier> = expr;
-    Var(&'de str, Option<Expr<'de>>),
+    Var(String, Option<Expr>),
     /// Block
-    Block(Vec<Stmt<'de>>),
+    Block(Vec<Stmt>),
     /// If statement
-    If(Expr<'de>, Box<Stmt<'de>>, Option<Box<Stmt<'de>>>),
+    If(Expr, Box<Stmt>, Option<Box<Stmt>>),
     /// While statement
     While {
         /// The condition that must be `true` for the body to be run
-        condition: Expr<'de>,
+        condition: Expr,
         /// The statements that will be executed repreatedly if `condition`
-        body: Box<Stmt<'de>>,
+        body: Box<Stmt>,
     },
     /// Func statement
     Function {
-        name: Token<'de>,
-        parameters: Vec<Token<'de>>,
-        body: Vec<Stmt<'de>>,
+        name: Token,
+        parameters: Vec<Token>,
+        body: Vec<Stmt>,
     },
 }
 
-impl<'de> Iterator for Parser<'de> {
-    type Item = Result<Stmt<'de>, String>;
+impl Iterator for Parser {
+    type Item = Result<Stmt, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.is_at_end() || self.parse_failed {
@@ -123,19 +123,19 @@ impl<'de> Iterator for Parser<'de> {
     }
 }
 
-impl<'de> Parser<'de> {
+impl Parser {
     /// Create new `Parser` from a lexed token stream
     #[must_use]
-    pub fn new(input: &'de str) -> Self {
-        let tokens: Vec<Token<'_>> = Lexer::new(input).flatten().collect();
-        Parser {
+    pub fn new(input: &str) -> Self {
+        let tokens: Vec<Token> = Lexer::new(input).flatten().collect();
+        Self {
             tokens,
             current: 0,
             parse_failed: false,
         }
     }
 
-    fn declaration(&mut self) -> Result<Stmt<'de>, String> {
+    fn declaration(&mut self) -> Result<Stmt, String> {
         if self.match_tokens(&[TokenType::Fun]) {
             return self.function("function");
         }
@@ -145,7 +145,7 @@ impl<'de> Parser<'de> {
         self.statement()
     }
 
-    fn function(&mut self, kind: &str) -> Result<Stmt<'de>, String> {
+    fn function(&mut self, kind: &str) -> Result<Stmt, String> {
         let name = self
             .consume(&TokenType::Identifier, &format!("Expect {kind} name."))?
             .clone();
@@ -179,10 +179,9 @@ impl<'de> Parser<'de> {
         })
     }
 
-    fn var_declaration(&mut self) -> Result<Stmt<'de>, String> {
-        let name = self
-            .consume(&TokenType::Identifier, "Expect variable name.")?
-            .origin;
+    fn var_declaration(&mut self) -> Result<Stmt, String> {
+        let token = self.consume(&TokenType::Identifier, "Expect variable name.")?;
+        let name = token.origin.clone();
         let intializer = if self.match_tokens(&[TokenType::Equal]) {
             Some(self.expression()?)
         } else {
@@ -192,7 +191,7 @@ impl<'de> Parser<'de> {
         Ok(Stmt::Var(name, intializer))
     }
 
-    fn statement(&mut self) -> Result<Stmt<'de>, String> {
+    fn statement(&mut self) -> Result<Stmt, String> {
         if self.match_tokens(&[TokenType::While]) {
             return self.while_statement();
         }
@@ -212,7 +211,7 @@ impl<'de> Parser<'de> {
         self.expression_statement()
     }
 
-    fn for_statement(&mut self) -> Result<Stmt<'de>, String> {
+    fn for_statement(&mut self) -> Result<Stmt, String> {
         self.consume(&TokenType::LeftParen, "Expect '(' after 'for'")?;
 
         let mut initializer: Option<Stmt> = None;
@@ -252,7 +251,7 @@ impl<'de> Parser<'de> {
         Ok(body)
     }
 
-    fn while_statement(&mut self) -> Result<Stmt<'de>, String> {
+    fn while_statement(&mut self) -> Result<Stmt, String> {
         self.consume(&TokenType::LeftParen, "Expect '(' after 'while'")?;
         let condition = self.expression()?;
         self.consume(&TokenType::RightParen, "Expect ')' after condition")?;
@@ -261,7 +260,7 @@ impl<'de> Parser<'de> {
         Ok(Stmt::While { condition, body })
     }
 
-    fn if_statement(&mut self) -> Result<Stmt<'de>, String> {
+    fn if_statement(&mut self) -> Result<Stmt, String> {
         self.consume(&TokenType::LeftParen, "Expect ')' after 'if'")?;
         let condition = self.expression()?;
         self.consume(&TokenType::RightParen, "Expect ')' after if condition.")?;
@@ -276,8 +275,8 @@ impl<'de> Parser<'de> {
         Ok(if_stmt)
     }
 
-    fn block(&mut self) -> Result<Vec<Stmt<'de>>, String> {
-        let mut stmts: Vec<Stmt<'de>> = Vec::new();
+    fn block(&mut self) -> Result<Vec<Stmt>, String> {
+        let mut stmts: Vec<Stmt> = Vec::new();
         while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
             stmts.push(self.declaration()?);
         }
@@ -285,23 +284,23 @@ impl<'de> Parser<'de> {
         Ok(stmts)
     }
 
-    fn expression_statement(&mut self) -> Result<Stmt<'de>, String> {
+    fn expression_statement(&mut self) -> Result<Stmt, String> {
         let expr = self.expression()?;
         self.consume(&TokenType::Semicolon, "Expect ';' after value")?;
         Ok(Stmt::ExpressionStatement(expr))
     }
 
-    fn print_statement(&mut self) -> Result<Stmt<'de>, String> {
+    fn print_statement(&mut self) -> Result<Stmt, String> {
         let expr = self.expression()?;
         self.consume(&TokenType::Semicolon, "Expect ';' after value")?;
         Ok(Stmt::Print(expr))
     }
 
-    fn expression(&mut self) -> Result<Expr<'de>, String> {
+    fn expression(&mut self) -> Result<Expr, String> {
         self.assignment()
     }
 
-    fn assignment(&mut self) -> Result<Expr<'de>, String> {
+    fn assignment(&mut self) -> Result<Expr, String> {
         let expr = self.or()?;
 
         if self.match_tokens(&[TokenType::Equal]) {
@@ -309,12 +308,11 @@ impl<'de> Parser<'de> {
             let value = self.assignment()?;
 
             if let Expr::Variable(token) = expr {
-                let name = token.origin;
-                return Ok(Expr::Assign(name, Box::new(value)));
+                return Ok(Expr::Assign(token.origin, Box::new(value)));
             }
             let err_msg = Self::error_msg(
                 &equals.token_type,
-                equals.origin,
+                &equals.origin,
                 equals.line,
                 "Invalid assignment type.",
             );
@@ -324,7 +322,7 @@ impl<'de> Parser<'de> {
         Ok(expr)
     }
 
-    fn or(&mut self) -> Result<Expr<'de>, String> {
+    fn or(&mut self) -> Result<Expr, String> {
         let mut expr = self.and()?;
 
         while self.match_tokens(&[TokenType::Or]) {
@@ -340,7 +338,7 @@ impl<'de> Parser<'de> {
         Ok(expr)
     }
 
-    fn and(&mut self) -> Result<Expr<'de>, String> {
+    fn and(&mut self) -> Result<Expr, String> {
         let mut expr = self.equality()?;
         while self.match_tokens(&[TokenType::And]) {
             let operator = self.previous().clone();
@@ -354,7 +352,7 @@ impl<'de> Parser<'de> {
         Ok(expr)
     }
 
-    fn equality(&mut self) -> Result<Expr<'de>, String> {
+    fn equality(&mut self) -> Result<Expr, String> {
         let mut expr = self.comparison()?;
 
         while self.match_tokens(&[TokenType::BangEqual, TokenType::EqualEqual]) {
@@ -370,7 +368,7 @@ impl<'de> Parser<'de> {
         Ok(expr)
     }
 
-    fn comparison(&mut self) -> Result<Expr<'de>, String> {
+    fn comparison(&mut self) -> Result<Expr, String> {
         let mut expr = self.term()?;
 
         while self.match_tokens(&[
@@ -391,7 +389,7 @@ impl<'de> Parser<'de> {
         Ok(expr)
     }
 
-    fn term(&mut self) -> Result<Expr<'de>, String> {
+    fn term(&mut self) -> Result<Expr, String> {
         let mut expr = self.factor()?;
 
         while self.match_tokens(&[TokenType::Minus, TokenType::Plus]) {
@@ -407,7 +405,7 @@ impl<'de> Parser<'de> {
         Ok(expr)
     }
 
-    fn factor(&mut self) -> Result<Expr<'de>, String> {
+    fn factor(&mut self) -> Result<Expr, String> {
         let mut expr = self.unary()?;
 
         while self.match_tokens(&[TokenType::Slash, TokenType::Star]) {
@@ -423,7 +421,7 @@ impl<'de> Parser<'de> {
         Ok(expr)
     }
 
-    fn unary(&mut self) -> Result<Expr<'de>, String> {
+    fn unary(&mut self) -> Result<Expr, String> {
         if self.match_tokens(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().clone();
             let right = self.unary()?;
@@ -436,7 +434,7 @@ impl<'de> Parser<'de> {
         self.call()
     }
 
-    fn call(&mut self) -> Result<Expr<'de>, String> {
+    fn call(&mut self) -> Result<Expr, String> {
         let mut expr = self.primary()?;
         loop {
             if self.match_tokens(&[TokenType::LeftParen]) {
@@ -448,8 +446,8 @@ impl<'de> Parser<'de> {
         Ok(expr)
     }
 
-    fn finish_call(&mut self, callee: Expr<'de>) -> Result<Expr<'de>, String> {
-        let mut arguments: Vec<Expr<'de>> = vec![];
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, String> {
+        let mut arguments: Vec<Expr> = vec![];
 
         if !self.check(&TokenType::RightParen) {
             loop {
@@ -473,11 +471,11 @@ impl<'de> Parser<'de> {
         })
     }
 
-    fn primary(&mut self) -> Result<Expr<'de>, String> {
+    fn primary(&mut self) -> Result<Expr, String> {
         let token = self.advance();
         match token.token_type {
             TokenType::Number(n) => Ok(Expr::Literal(LiteralAtom::Number(n))),
-            TokenType::String => Ok(Expr::Literal(LiteralAtom::String(token.origin))),
+            TokenType::String => Ok(Expr::Literal(LiteralAtom::String(token.origin.clone()))),
             TokenType::True => Ok(Expr::Literal(LiteralAtom::Bool(true))),
             TokenType::False => Ok(Expr::Literal(LiteralAtom::Bool(false))),
             TokenType::Nil => Ok(Expr::Literal(LiteralAtom::Nil)),
@@ -490,7 +488,7 @@ impl<'de> Parser<'de> {
             _ => {
                 let err_msg = Self::error_msg(
                     &token.token_type,
-                    token.origin,
+                    &token.origin,
                     token.line,
                     "Expect expression",
                 );
@@ -516,20 +514,20 @@ impl<'de> Parser<'de> {
         std::mem::discriminant(&self.peek().token_type) == std::mem::discriminant(token_type)
     }
 
-    fn advance(&mut self) -> &Token<'de> {
+    fn advance(&mut self) -> &Token {
         if !self.is_at_end() {
             self.current += 1;
         }
         self.previous()
     }
 
-    fn peek(&self) -> &Token<'de> {
+    fn peek(&self) -> &Token {
         self.tokens
             .get(self.current)
             .expect("current should never be outside index")
     }
 
-    fn previous(&self) -> &Token<'de> {
+    fn previous(&self) -> &Token {
         self.tokens.get(self.current - 1).unwrap()
     }
 
@@ -538,14 +536,14 @@ impl<'de> Parser<'de> {
         matches!(token.token_type, TokenType::Eof)
     }
 
-    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<&Token<'de>, String> {
+    fn consume(&mut self, token_type: &TokenType, message: &str) -> Result<&Token, String> {
         if self.check(token_type) {
             Ok(self.advance())
         } else {
             let token = self.peek();
             Err(Self::error_msg(
                 token_type,
-                token.origin,
+                &token.origin,
                 token.line,
                 message,
             ))

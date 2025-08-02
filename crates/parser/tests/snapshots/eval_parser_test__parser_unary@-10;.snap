@@ -2,4 +2,4 @@
 source: crates/parser/tests/eval_parser_test.rs
 description: "-10;"
 ---
-ExpressionStatement(Unary { operator: Token { token_type: Minus, origin: "-", line: 1 }, right: Literal(Number(10.0)) })
+ExpressionStatement(Unary { operator: Token { token_type: Minus, span: Span { start: 0, end: 0 }, origin: "-", line: 1 }, right: Literal(Number(10.0)) })

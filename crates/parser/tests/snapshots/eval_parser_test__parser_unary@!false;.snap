@@ -2,4 +2,4 @@
 source: crates/parser/tests/eval_parser_test.rs
 description: "!false;"
 ---
-ExpressionStatement(Unary { operator: Token { token_type: Bang, origin: "!", line: 1 }, right: Literal(Bool(false)) })
+ExpressionStatement(Unary { operator: Token { token_type: Bang, span: Span { start: 0, end: 0 }, origin: "!", line: 1 }, right: Literal(Bool(false)) })

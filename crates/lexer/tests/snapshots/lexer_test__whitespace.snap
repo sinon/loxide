@@ -1,9 +1,8 @@
 ---
 source: crates/lexer/tests/lexer_test.rs
-description: "space    tabs\t\t\t\tnewlines\n\n//\n\n\nend//"
+description: "space    tabs\t\t\t\tnewlines\n\n//\n\nend//"
 ---
-- "Token { token_type: Identifier, origin: \"space\", line: 1 }"
-- "Token { token_type: Identifier, origin: \"tabs\", line: 1 }"
-- "Token { token_type: Identifier, origin: \"newlines\", line: 1 }"
-- "Token { token_type: Identifier, origin: \"end\", line: 6 }"
-- "Token { token_type: Eof, origin: \"\", line: 6 }"
+- "Token { token_type: Identifier, span: Span { start: 0, end: 4 }, origin: \"space\", line: 1 } - space"
+- "Token { token_type: Identifier, span: Span { start: 9, end: 12 }, origin: \"tabs\", line: 1 } - tabs"
+- "Token { token_type: Identifier, span: Span { start: 17, end: 24 }, origin: \"newlines\", line: 1 } - newlines"
+- "Token { token_type: Identifier, span: Span { start: 31, end: 33 }, origin: \"end\", line: 5 } - end"
