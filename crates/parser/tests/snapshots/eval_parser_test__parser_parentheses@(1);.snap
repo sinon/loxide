@@ -1,0 +1,5 @@
+---
+source: crates/parser/tests/eval_parser_test.rs
+description: (1);
+---
+ExpressionStatement(Grouping(Literal(Number(1.0))))

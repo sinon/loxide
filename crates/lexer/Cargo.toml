@@ -1,0 +1,12 @@
+[package]
+name = "lexer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+miette = { workspace = true }
+
+
+[dev-dependencies]
+rstest = "0.23.0"
+insta = { version = "1.41.1", features = ["yaml"] }

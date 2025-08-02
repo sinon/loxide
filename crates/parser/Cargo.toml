@@ -1,0 +1,18 @@
+[package]
+name = "parser"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+keywords.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+lexer = { path = "../lexer" }
+
+
+[dev-dependencies]
+rstest = "0.23.0"
+insta = { version = "1.41.1", features = ["yaml"] }

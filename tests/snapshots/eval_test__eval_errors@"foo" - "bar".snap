@@ -1,7 +1,0 @@
----
-source: tests/eval_test.rs
-description: "\"foo\" - \"bar\""
----
-[
-    "Operand must be a number",
-]

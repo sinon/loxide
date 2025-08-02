@@ -1,0 +1,5 @@
+---
+source: crates/parser/tests/eval_parser_test.rs
+description: "\"baz\" == \"baz\";"
+---
+ExpressionStatement(Binary { left: Literal(String("baz")), operator: Token { token_type: EqualEqual, origin: "==", line: 1 }, right: Literal(String("baz")) })
