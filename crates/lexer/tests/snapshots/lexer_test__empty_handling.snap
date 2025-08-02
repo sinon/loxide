@@ -1,5 +1,5 @@
 ---
-source: tests/lexer_test.rs
+source: crates/lexer/tests/lexer_test.rs
 expression: out
 ---
-EOF  null
+"Token { token_type: Eof, origin: \"\", line: 1 }"

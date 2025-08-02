@@ -267,7 +267,7 @@ fn evaluate_statement<'de>(
             interpreter.environment.assign(
                 name.origin,
                 &EvaluatedValue::LoxFunction {
-                    name: name.to_string(),
+                    name: name.origin.to_string(),
                     func_id,
                 },
             )?;
@@ -332,7 +332,9 @@ fn evaluate_expression<'de>(
                         TokenType::EqualEqual => Ok(EvaluatedValue::Bool(n1 == n2)),
                         TokenType::BangEqual => Ok(EvaluatedValue::Bool(n1 != n2)),
                         // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
-                        _ => panic!("{op} is not a valid token type for Expr::Binary with Numbers"),
+                        _ => {
+                            panic!("{op:?} is not a valid token type for Expr::Binary with Numbers")
+                        }
                     }
                 }
                 (EvaluatedValue::String(s1), EvaluatedValue::String(s2), operator) => {
@@ -342,7 +344,7 @@ fn evaluate_expression<'de>(
                         TokenType::BangEqual => Ok(EvaluatedValue::Bool(s1 != s2)),
                         // TODO: Make unrepresentable by narrowing `operator` to `BinaryOperator:Not|Negate`
                         _ => panic!(
-                            "{operator} is not a valid token type for Expr:Binary with Strings"
+                            "{operator:?} is not a valid token type for Expr:Binary with Strings"
                         ),
                     }
                 }
@@ -351,17 +353,17 @@ fn evaluate_expression<'de>(
                     match operator.token_type {
                         TokenType::EqualEqual => Ok(EvaluatedValue::Bool(false)),
                         TokenType::BangEqual => Ok(EvaluatedValue::Bool(true)),
-                        _ => panic!("{operator} is not supported for String<>Number"),
+                        _ => panic!("{operator:?} is not supported for String<>Number"),
                     }
                 }
                 (EvaluatedValue::Bool(b1), EvaluatedValue::Bool(b2), operator) => {
                     match operator.token_type {
                         TokenType::BangEqual => Ok(EvaluatedValue::Bool(b1 != b2)),
                         TokenType::EqualEqual => Ok(EvaluatedValue::Bool(b1 == b2)),
-                        _ => panic!("{operator} is not for suppoer Bool / Bool binary"),
+                        _ => panic!("{operator:?} is not for suppoer Bool / Bool binary"),
                     }
                 }
-                (l, r, op) => todo!("Add handling for {l} {r} {op}"),
+                (l, r, op) => todo!("Add handling for {l} {r} {op:?}"),
             }
         }
         Expr::Unary { operator, right } => {

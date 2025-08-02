@@ -1,21 +1,21 @@
 ---
-source: tests/lexer_test.rs
+source: crates/lexer/tests/lexer_test.rs
 description: and class else false for fun if nil or return super this true var while print
 ---
-- AND and null
-- CLASS class null
-- ELSE else null
-- FALSE false null
-- FOR for null
-- FUN fun null
-- IF if null
-- NIL nil null
-- OR or null
-- RETURN return null
-- SUPER super null
-- THIS this null
-- TRUE true null
-- VAR var null
-- WHILE while null
-- PRINT print null
-- EOF  null
+- "Token { token_type: And, origin: \"and\", line: 1 }"
+- "Token { token_type: Class, origin: \"class\", line: 1 }"
+- "Token { token_type: Else, origin: \"else\", line: 1 }"
+- "Token { token_type: False, origin: \"false\", line: 1 }"
+- "Token { token_type: For, origin: \"for\", line: 1 }"
+- "Token { token_type: Fun, origin: \"fun\", line: 1 }"
+- "Token { token_type: If, origin: \"if\", line: 1 }"
+- "Token { token_type: Nil, origin: \"nil\", line: 1 }"
+- "Token { token_type: Or, origin: \"or\", line: 1 }"
+- "Token { token_type: Return, origin: \"return\", line: 1 }"
+- "Token { token_type: Super, origin: \"super\", line: 1 }"
+- "Token { token_type: This, origin: \"this\", line: 1 }"
+- "Token { token_type: True, origin: \"true\", line: 1 }"
+- "Token { token_type: Var, origin: \"var\", line: 1 }"
+- "Token { token_type: While, origin: \"while\", line: 1 }"
+- "Token { token_type: Print, origin: \"print\", line: 1 }"
+- "Token { token_type: Eof, origin: \"\", line: 1 }"

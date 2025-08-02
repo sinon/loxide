@@ -1,14 +1,14 @@
 ---
-source: tests/lexer_test.rs
+source: crates/lexer/tests/lexer_test.rs
 description: "123\n123.456\n.457\n123.\n90\n523."
 ---
-- NUMBER 123 123.0
-- NUMBER 123.456 123.456
-- DOT . null
-- NUMBER 457 457.0
-- NUMBER 123 123.0
-- DOT . null
-- NUMBER 90 90.0
-- NUMBER 523 523.0
-- DOT . null
-- EOF  null
+- "Token { token_type: Number(123.0), origin: \"123\", line: 1 }"
+- "Token { token_type: Number(123.456), origin: \"123.456\", line: 2 }"
+- "Token { token_type: Dot, origin: \".\", line: 3 }"
+- "Token { token_type: Number(457.0), origin: \"457\", line: 3 }"
+- "Token { token_type: Number(123.0), origin: \"123\", line: 4 }"
+- "Token { token_type: Dot, origin: \".\", line: 4 }"
+- "Token { token_type: Number(90.0), origin: \"90\", line: 5 }"
+- "Token { token_type: Number(523.0), origin: \"523\", line: 6 }"
+- "Token { token_type: Dot, origin: \".\", line: 6 }"
+- "Token { token_type: Eof, origin: \"\", line: 6 }"

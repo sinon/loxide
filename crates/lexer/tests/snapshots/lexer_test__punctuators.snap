@@ -1,25 +1,25 @@
 ---
-source: tests/lexer_test.rs
+source: crates/lexer/tests/lexer_test.rs
 description: "(){};,+-*!===<=>=!=<>/.=!"
 ---
-- LEFT_PAREN ( null
-- RIGHT_PAREN ) null
-- "LEFT_BRACE { null"
-- "RIGHT_BRACE } null"
-- SEMICOLON ; null
-- "COMMA , null"
-- PLUS + null
-- MINUS - null
-- STAR * null
-- BANG_EQUAL != null
-- EQUAL_EQUAL == null
-- LESS_EQUAL <= null
-- GREATER_EQUAL >= null
-- BANG_EQUAL != null
-- LESS < null
-- GREATER > null
-- SLASH / null
-- DOT . null
-- EQUAL = null
-- BANG ! null
-- EOF  null
+- "Token { token_type: LeftParen, origin: \"(\", line: 1 }"
+- "Token { token_type: RightParen, origin: \")\", line: 1 }"
+- "Token { token_type: LeftBrace, origin: \"{\", line: 1 }"
+- "Token { token_type: RightBrace, origin: \"}\", line: 1 }"
+- "Token { token_type: Semicolon, origin: \";\", line: 1 }"
+- "Token { token_type: Comma, origin: \",\", line: 1 }"
+- "Token { token_type: Plus, origin: \"+\", line: 1 }"
+- "Token { token_type: Minus, origin: \"-\", line: 1 }"
+- "Token { token_type: Star, origin: \"*\", line: 1 }"
+- "Token { token_type: BangEqual, origin: \"!=\", line: 1 }"
+- "Token { token_type: EqualEqual, origin: \"==\", line: 1 }"
+- "Token { token_type: LessEqual, origin: \"<=\", line: 1 }"
+- "Token { token_type: GreaterEqual, origin: \">=\", line: 1 }"
+- "Token { token_type: BangEqual, origin: \"!=\", line: 1 }"
+- "Token { token_type: Less, origin: \"<\", line: 1 }"
+- "Token { token_type: Greater, origin: \">\", line: 1 }"
+- "Token { token_type: Slash, origin: \"/\", line: 1 }"
+- "Token { token_type: Dot, origin: \".\", line: 1 }"
+- "Token { token_type: Equal, origin: \"=\", line: 1 }"
+- "Token { token_type: Bang, origin: \"!\", line: 1 }"
+- "Token { token_type: Eof, origin: \"\", line: 1 }"
