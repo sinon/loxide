@@ -2,4 +2,4 @@
 source: crates/lexer/tests/lexer_test.rs
 expression: out
 ---
-"Token { token_type: Eof, span: Span { start: 0, end: 0 }, line: 1 } - ``"
+"Token { token_type: Eof, span: Span { start: 0, end: 0 }, origin: \"\", line: 1 } - ``"

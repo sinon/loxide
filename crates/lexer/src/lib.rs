@@ -18,6 +18,8 @@ pub struct Token {
     pub token_type: TokenType,
     /// The text reference from the source code
     pub span: Span,
+    /// The text reference from the source code
+    pub origin: String,
     /// The line number where the token was parsed from
     pub line: usize,
 }
@@ -151,6 +153,7 @@ impl Iterator for Lexer<'_> {
                         return Some(Ok(Token {
                             token_type: TokenType::LeftParen,
                             span: Span { start: start_byte, end: start_byte},
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }))
                     }
@@ -158,6 +161,7 @@ impl Iterator for Lexer<'_> {
                         return Some(Ok(Token {
                             token_type: TokenType::RightParen,
                             span: Span { start: start_byte, end: start_byte},
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }))
                     }
@@ -165,6 +169,7 @@ impl Iterator for Lexer<'_> {
                         return Some(Ok(Token {
                             token_type: TokenType::LeftBrace,
                             span: Span { start: start_byte, end: start_byte},
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }))
                     }
@@ -172,6 +177,7 @@ impl Iterator for Lexer<'_> {
                         return Some(Ok(Token {
                             token_type: TokenType::RightBrace,
                             span: Span { start: start_byte, end: start_byte},
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }))
                     }
@@ -179,6 +185,7 @@ impl Iterator for Lexer<'_> {
                         return Some(Ok(Token {
                             token_type: TokenType::Comma,
                             span: Span { start: start_byte, end: start_byte},
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }))
                     }
@@ -186,6 +193,7 @@ impl Iterator for Lexer<'_> {
                         return Some(Ok(Token {
                             token_type: TokenType::Dot,
                             span: Span { start: start_byte, end: start_byte},
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }))
                     }
@@ -193,6 +201,7 @@ impl Iterator for Lexer<'_> {
                         return Some(Ok(Token {
                             token_type: TokenType::Minus,
                             span: Span { start: start_byte, end: start_byte},
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }))
                     }
@@ -200,6 +209,7 @@ impl Iterator for Lexer<'_> {
                         return Some(Ok(Token {
                             token_type: TokenType::Plus,
                             span: Span { start: start_byte, end: start_byte},
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }))
                     }
@@ -207,6 +217,7 @@ impl Iterator for Lexer<'_> {
                         return Some(Ok(Token {
                             token_type: TokenType::Star,
                             span: Span { start: start_byte, end: start_byte},
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }))
                     }
@@ -214,6 +225,7 @@ impl Iterator for Lexer<'_> {
                         return Some(Ok(Token {
                             token_type: TokenType::Semicolon,
                             span: Span { start: start_byte, end: start_byte},
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }))
                     }
@@ -257,6 +269,7 @@ impl Iterator for Lexer<'_> {
                                     start: start_byte,
                                     end: self.byte,
                                 },
+                                origin: c_str.to_string(),
                                 line: self.line_num,
                             }));
                         }
@@ -264,6 +277,7 @@ impl Iterator for Lexer<'_> {
                     Started::String => {
                         if self.rest.contains('"') {
                             let (s, _) = self.rest.split_once('"')?;
+                            let c_str = &c_onwards[1..=s.len()];
                             self.byte += s.len() + 1;
                             self.rest = &self.rest[s.len() + 1..];
                             return Some(Ok(Token {
@@ -272,6 +286,7 @@ impl Iterator for Lexer<'_> {
                                     start: start_byte,
                                     end: self.byte - 1,
                                 },
+                                origin: c_str.to_string(),
                                 line: self.line_num,
                             }));
                         }
@@ -309,6 +324,7 @@ impl Iterator for Lexer<'_> {
                                                 start: start_byte,
                                                 end: self.byte - 1,
                                             },
+                                            origin: c_str.to_string(),
                                             line: self.line_num,
                                         }));
                                     }
@@ -323,6 +339,7 @@ impl Iterator for Lexer<'_> {
                                         start: start_byte,
                                         end: self.byte - 1,
                                     },
+                                    origin: c_str.to_string(),
                                     line: self.line_num,
                                 }));
                             }
@@ -336,6 +353,7 @@ impl Iterator for Lexer<'_> {
                                     start: start_byte,
                                     end: self.byte - 1,
                                 },
+                                origin: c_str.to_string(),
                                 line: self.line_num,
                             }));
                         }
@@ -352,6 +370,7 @@ impl Iterator for Lexer<'_> {
                                         start: start_byte,
                                         end: self.byte - 1,
                                     },
+                                    origin: c_str.to_string(),
                                     line: self.line_num,
                                 }));
                             }
@@ -368,6 +387,7 @@ impl Iterator for Lexer<'_> {
                                     start: start_byte,
                                     end: self.byte - 1,
                                 },
+                                origin: c_str.to_string(),
                                 line: self.line_num,
                             }));
                         }
@@ -378,6 +398,7 @@ impl Iterator for Lexer<'_> {
                                 start: start_byte,
                                 end: self.byte - 1,
                             },
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         }));
                     },
@@ -391,6 +412,7 @@ impl Iterator for Lexer<'_> {
                                     start: start_byte,
                                     end: self.byte - 1,
                                 },
+                                origin: c_str.to_string(),
                                 line: self.line_num,
                             };
                             return Some(Ok(token));
@@ -401,6 +423,7 @@ impl Iterator for Lexer<'_> {
                                 start: start_byte,
                                 end: self.byte - 1,
                             },
+                            origin: c_str.to_string(),
                             line: self.line_num,
                         };
                         return Some(Ok(token));
@@ -414,6 +437,7 @@ impl Iterator for Lexer<'_> {
                         start: self.byte,
                         end: self.byte,
                     },
+                    origin: String::new(),
                     line: self.line_num,
                 }));
             }

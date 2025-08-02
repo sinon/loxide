@@ -2,8 +2,8 @@
 source: crates/lexer/tests/lexer_test.rs
 description: ((true))
 ---
-- "Token { token_type: LeftParen, span: Span { start: 0, end: 0 }, line: 1 } - `(`"
-- "Token { token_type: LeftParen, span: Span { start: 1, end: 1 }, line: 1 } - `(`"
-- "Token { token_type: True, span: Span { start: 2, end: 5 }, line: 1 } - `true`"
-- "Token { token_type: RightParen, span: Span { start: 6, end: 6 }, line: 1 } - `)`"
-- "Token { token_type: RightParen, span: Span { start: 7, end: 7 }, line: 1 } - `)`"
+- "Token { token_type: LeftParen, span: Span { start: 0, end: 0 }, origin: \"(\", line: 1 } - `(`"
+- "Token { token_type: LeftParen, span: Span { start: 1, end: 1 }, origin: \"(\", line: 1 } - `(`"
+- "Token { token_type: True, span: Span { start: 2, end: 5 }, origin: \"true\", line: 1 } - `true`"
+- "Token { token_type: RightParen, span: Span { start: 6, end: 6 }, origin: \")\", line: 1 } - `)`"
+- "Token { token_type: RightParen, span: Span { start: 7, end: 7 }, origin: \")\", line: 1 } - `)`"
