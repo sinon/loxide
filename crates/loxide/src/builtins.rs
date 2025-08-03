@@ -1,12 +1,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::interpreter;
-use crate::value::EvaluatedValue;
+use ast::EvaluatedValue;
 
-pub fn clock(
-    _interpreter: &mut interpreter::Interpreter,
-    _args: &[EvaluatedValue],
-) -> Result<EvaluatedValue, String> {
+pub fn clock(_args: &[EvaluatedValue]) -> Result<EvaluatedValue, String> {
     let start = SystemTime::now();
     #[allow(clippy::cast_precision_loss)]
     start.duration_since(UNIX_EPOCH).map_or_else(

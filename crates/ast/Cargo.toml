@@ -1,5 +1,5 @@
 [package]
-name = "parser"
+name = "ast"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -11,9 +11,3 @@ repository.workspace = true
 
 [dependencies]
 lexer = { path = "../lexer" }
-ast = { path = "../ast" }
-
-
-[dev-dependencies]
-rstest = "0.23.0"
-insta = { version = "1.41.1", features = ["yaml"] }

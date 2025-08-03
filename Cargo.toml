@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/lexer", "./", "crates/parser", "crates/loxide"]
+members = ["crates/lexer", "crates/parser", "crates/loxide", "crates/ast"]
 
 
 [workspace.package]

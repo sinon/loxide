@@ -9,4 +9,3 @@
 #![warn(missing_docs)]
 mod builtins;
 pub mod interpreter;
-mod value;
