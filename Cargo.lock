@@ -93,6 +93,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ast"
+version = "0.1.0"
+dependencies = [
+ "lexer",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -410,6 +417,7 @@ name = "loxide"
 version = "0.1.0"
 dependencies = [
  "assert_cmd",
+ "ast",
  "clap",
  "insta",
  "lexer",
@@ -495,6 +503,7 @@ checksum = "fb37767f6569cd834a413442455e0f066d0d522de8630436e2a1761d9726ba56"
 name = "parser"
 version = "0.1.0"
 dependencies = [
+ "ast",
  "insta",
  "lexer",
  "rstest",

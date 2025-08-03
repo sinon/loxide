@@ -3,77 +3,37 @@
 //! Responsible for running the AST and returning the computed values
 //!
 
-use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{builtins, value::EvaluatedValue};
-use lexer::{Token, TokenType};
-use parser::{Expr, LiteralAtom, Parser, Stmt};
+use crate::builtins;
+use ast::{EvaluatedValue, Expr, LiteralAtom, LoxFunction, NativeFunction, Stmt};
+use lexer::TokenType;
+use parser::Parser;
 
-/// `NativeFunction` is used to represent builtin native functions
-#[derive(Clone)]
-pub struct NativeFunction {
-    /// `name` of the native function
-    pub name: String,
-    /// Numbers of arguments that should be passed to `callable`
-    pub arity: u8,
-    /// A function to be run
-    pub callable: fn(&mut Interpreter, &[EvaluatedValue]) -> Result<EvaluatedValue, String>,
-}
-
-impl fmt::Debug for NativeFunction {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "NativeFunction({})", self.name)
-    }
-}
-
-impl NativeFunction {
-    const fn arity(&self, _interpreter: &Interpreter) -> u8 {
-        self.arity
-    }
-    fn call(
-        &self,
-        interpreter: &mut Interpreter,
-        args: &[EvaluatedValue],
-    ) -> Result<EvaluatedValue, String> {
-        (self.callable)(interpreter, args)
-    }
-}
-
-/// A user defined lox function
-#[derive(Debug, Clone)]
-pub struct LoxFunction<'de> {
-    /// The identifier
-    pub name: Token<'de>,
-    /// The parameter values
-    pub parameters: Vec<Token<'de>>,
-    /// The body of the function
-    pub body: Vec<Stmt<'de>>,
-}
-
-impl<'de> LoxFunction<'de> {
-    #[allow(dead_code)]
-    fn arity(&self) -> u8 {
-        u8::try_from(self.parameters.len()).expect("arity < 255 is enforced by parser")
-    }
-    #[allow(dead_code)]
-    fn call(
-        &self,
-        interpreter: &mut Interpreter<'de>,
-        args: &[EvaluatedValue],
-    ) -> Result<EvaluatedValue, String> {
-        let _args_env: HashMap<_, _> = self
-            .parameters
-            .iter()
-            .zip(args.iter())
-            .map(|(param, arg)| (param.origin, (Some(arg.clone()),)))
-            .collect();
-        let saved_env = interpreter.environment.clone();
-        let block = Stmt::Block(self.body.clone());
-        evaluate_statement(&block, interpreter)?;
-        interpreter.environment = saved_env;
-        todo!("Implement the `call` fn for `LoxFunction`")
-    }
-}
+// impl<'de> LoxFunction<'de> {
+//     #[allow(dead_code)]
+//     fn arity(&self) -> u8 {
+//         u8::try_from(self.parameters.len()).expect("arity < 255 is enforced by parser")
+//     }
+//     #[allow(dead_code)]
+//     fn call(
+//         &self,
+//         interpreter: &mut Interpreter<'de>,
+//         args: &[EvaluatedValue],
+//     ) -> Result<EvaluatedValue, String> {
+//         let _args_env: HashMap<_, _> = self
+//             .parameters
+//             .iter()
+//             .zip(args.iter())
+//             .map(|(param, arg)| (param.origin, (Some(arg.clone()),)))
+//             .collect();
+//         let saved_env = interpreter.environment.clone();
+//         let block = Stmt::Block(self.body.clone());
+//         evaluate_statement(&block, interpreter)?;
+//         interpreter.environment = saved_env;
+//         todo!("Implement the `call` fn for `LoxFunction`")
+//     }
+// }
 
 /// `Interpreter`
 /// responsible for iterating over the rusults of parser
@@ -247,7 +207,8 @@ fn evaluate_statement<'de>(
                 .clone();
         }
         Stmt::While { condition, body } => loop {
-            if !(evaluate_expression(condition, interpreter)?.is_truthy()) {
+            let cond_val: bool = evaluate_expression(condition, interpreter)?.into();
+            if !(cond_val) {
                 break;
             }
             evaluate_statement(body, interpreter)?;
@@ -363,7 +324,7 @@ fn evaluate_expression<'de>(
                         _ => panic!("{operator:?} is not for suppoer Bool / Bool binary"),
                     }
                 }
-                (l, r, op) => todo!("Add handling for {l} {r} {op:?}"),
+                (l, r, op) => todo!("Add handling for {l:?} {r:?} {op:?}"),
             }
         }
         Expr::Unary { operator, right } => {
@@ -388,25 +349,14 @@ fn evaluate_expression<'de>(
                             true => Ok(EvaluatedValue::Bool(false)),
                             false => Ok(EvaluatedValue::Bool(true)),
                         },
-                        EvaluatedValue::NativeFunction(_f) => todo!(),
-                        EvaluatedValue::LoxFunction {
-                            name: _,
-                            func_id: _,
-                        } => todo!(),
+                        _ => panic!("! should not be called with {v}"),
                     },
                 ),
                 TokenType::Minus => r.as_ref().map_or_else(
                     |_| todo!(),
                     |v| match v {
-                        EvaluatedValue::String(_) => todo!(),
                         EvaluatedValue::Number(n) => Ok(EvaluatedValue::Number(-n)),
-                        EvaluatedValue::Nil => todo!(),
-                        EvaluatedValue::Bool(_) => todo!(),
-                        EvaluatedValue::NativeFunction(_f) => todo!(),
-                        EvaluatedValue::LoxFunction {
-                            name: _,
-                            func_id: _,
-                        } => todo!(),
+                        _ => panic!("Minus should not be called with non-Number such as {v}"),
                     },
                 ),
                 // TODO: Make unrepresentable by narrowing `operator` to `UnaryOperator:Not|Negate`
@@ -449,7 +399,7 @@ fn evaluate_expression<'de>(
             right,
         } => {
             let left_val = evaluate_expression(left, interpreter)?;
-            let left_truth: bool = left_val.is_truthy();
+            let left_truth: bool = left_val.clone().into();
             if operator.token_type == TokenType::Or {
                 if left_truth {
                     return Ok(left_val);
@@ -472,11 +422,11 @@ fn evaluate_expression<'de>(
 
             match &callee_fn {
                 EvaluatedValue::NativeFunction(f) => {
-                    if f.arity(interpreter) as usize != args.len() {
+                    if f.arity() as usize != args.len() {
                         eprintln!("Expected {} arguments but got {}.", f.arity, args.len());
                         return Err("Incorrect arity".to_string());
                     }
-                    f.call(interpreter, &args)
+                    f.call(&args)
                 }
                 EvaluatedValue::LoxFunction { func_id, .. } => {
                     let _ = interpreter.get_lox_fn(*func_id);

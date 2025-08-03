@@ -13,6 +13,7 @@ repository.workspace = true
 clap = { version = "4.5.23", features = ["derive"] }
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
+ast = { path = "../ast" }
 miette = { workspace = true }
 
 [dev-dependencies]
